@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 import { Button } from './ui/Button';
-import { Input } from './ui/Input';
 import { Label } from './ui/Label';
 import { motion } from 'framer-motion';
 
@@ -26,6 +26,8 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
   const [philosophyTitle, setPhilosophyTitle] = useState('');
   const [philosophyText, setPhilosophyText] = useState('');
   const [philosophyImage, setPhilosophyImage] = useState('');
+  const [heroUploading, setHeroUploading] = useState(false);
+  const [philosophyUploading, setPhilosophyUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
@@ -59,6 +61,42 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
     }
     loadSettings();
   }, []);
+
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHeroUploading(true);
+    setError('');
+    try {
+      const fileRef = ref(storage, `home/hero_${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      setHeroImage(url);
+    } catch (err: any) {
+      console.error("Error uploading hero image:", err);
+      setError(err.message || 'Error al subir la imagen principal.');
+    } finally {
+      setHeroUploading(false);
+    }
+  };
+
+  const handlePhilosophyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhilosophyUploading(true);
+    setError('');
+    try {
+      const fileRef = ref(storage, `home/philosophy_${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      setPhilosophyImage(url);
+    } catch (err: any) {
+      console.error("Error uploading philosophy image:", err);
+      setError(err.message || 'Error al subir la imagen de filosofía.');
+    } finally {
+      setPhilosophyUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,12 +152,13 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
           
           <div className="space-y-1">
             <Label htmlFor="heroTitle" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Título Principal (Home)</Label>
-            <Input
+            <textarea
               id="heroTitle"
               required
+              rows={2}
               value={heroTitle}
               onChange={(e) => setHeroTitle(e.target.value)}
-              className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia"
+              className="flex w-full rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia focus:outline-none"
               placeholder="Ej. Respira, conecta y transforma"
             />
           </div>
@@ -137,16 +176,30 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
             />
           </div>
 
+          {/* HERO WALLPAPER Uploader */}
           <div className="space-y-1">
-            <Label htmlFor="heroImage" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">URL Imagen de Fondo (Hero Wallpaper)</Label>
-            <Input
-              id="heroImage"
-              required
-              value={heroImage}
-              onChange={(e) => setHeroImage(e.target.value)}
-              className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia"
-              placeholder="https://images.unsplash.com/..."
-            />
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Fondo de Pantalla Principal (Hero Wallpaper)</Label>
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/50 p-4 rounded-2xl border border-arena/30">
+              {heroImage && (
+                <img src={heroImage} alt="Hero Preview" className="w-24 h-16 rounded-xl object-cover shadow-sm border border-arena bg-arena" />
+              )}
+              <div className="flex-1 w-full">
+                <input
+                  id="hero-image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleHeroImageUpload}
+                  disabled={heroUploading}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="hero-image-upload"
+                  className="flex items-center justify-center w-full rounded-full border border-salvia/30 text-salvia bg-transparent px-4 py-2.5 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-salvia/10 select-none transition-colors text-center border-dashed border-2"
+                >
+                  {heroUploading ? 'Subiendo...' : heroImage ? 'Cambiar Imagen de Fondo' : 'Subir Imagen de Fondo'}
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -156,12 +209,12 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
           
           <div className="space-y-1">
             <Label htmlFor="philosophyTitle" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Título de la Sección</Label>
-            <Input
+            <input
               id="philosophyTitle"
               required
               value={philosophyTitle}
               onChange={(e) => setPhilosophyTitle(e.target.value)}
-              className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia"
+              className="flex w-full rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia focus:outline-none"
               placeholder="Ej. Nuestra Filosofía"
             />
           </div>
@@ -171,7 +224,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
             <textarea
               id="philosophyText"
               required
-              rows={4}
+              rows={5}
               value={philosophyText}
               onChange={(e) => setPhilosophyText(e.target.value)}
               className="flex w-full rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia focus:outline-none"
@@ -179,23 +232,37 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
             />
           </div>
 
+          {/* PHILOSOPHY IMAGE Uploader */}
           <div className="space-y-1">
-            <Label htmlFor="philosophyImage" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">URL de la Imagen de Filosofía</Label>
-            <Input
-              id="philosophyImage"
-              required
-              value={philosophyImage}
-              onChange={(e) => setPhilosophyImage(e.target.value)}
-              className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia"
-              placeholder="https://images.unsplash.com/..."
-            />
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Imagen de Filosofía</Label>
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/50 p-4 rounded-2xl border border-arena/30">
+              {philosophyImage && (
+                <img src={philosophyImage} alt="Philosophy Preview" className="w-24 h-16 rounded-xl object-cover shadow-sm border border-arena bg-arena" />
+              )}
+              <div className="flex-1 w-full">
+                <input
+                  id="philosophy-image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhilosophyImageUpload}
+                  disabled={philosophyUploading}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="philosophy-image-upload"
+                  className="flex items-center justify-center w-full rounded-full border border-salvia/30 text-salvia bg-transparent px-4 py-2.5 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-salvia/10 select-none transition-colors text-center border-dashed border-2"
+                >
+                  {philosophyUploading ? 'Subiendo...' : philosophyImage ? 'Cambiar Imagen de Filosofía' : 'Subir Imagen de Filosofía'}
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="flex justify-end pt-2">
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || heroUploading || philosophyUploading}
             className="rounded-full bg-salvia px-8 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md"
           >
             {loading ? 'Guardando Ajustes...' : 'Guardar Todos los Ajustes'}

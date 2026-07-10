@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Label } from './ui/Label';
@@ -15,6 +16,7 @@ interface YogaClass {
   date: string; // ISO string
   duration: number; // minutes
   featured?: boolean;
+  image?: string;
 }
 
 interface AdminClassFormProps {
@@ -31,6 +33,8 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
   const [date, setDate] = useState('');
   const [duration, setDuration] = useState(60);
   const [featured, setFeatured] = useState(false);
+  const [image, setImage] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,6 +45,7 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
       setLevel(classToEdit.level);
       setCapacity(classToEdit.capacity);
       setFeatured(classToEdit.featured || false);
+      setImage(classToEdit.image || '');
       
       // Format ISO string to datetime-local input format (YYYY-MM-DDTHH:MM)
       if (classToEdit.date) {
@@ -60,8 +65,27 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
       setDate('');
       setDuration(60);
       setFeatured(false);
+      setImage('');
     }
   }, [classToEdit]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const fileRef = ref(storage, `classes/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      setImage(url);
+    } catch (err: any) {
+      console.error("Error uploading image:", err);
+      setError(err.message || 'Error al subir la imagen.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +103,7 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
       date: isoDate,
       duration: Number(duration),
       featured,
+      image,
     };
 
     try {
@@ -197,6 +222,32 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
           </div>
         </div>
 
+        {/* IMAGE UPLOAD SECTION */}
+        <div className="space-y-1">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Foto de la Clase</Label>
+          <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/50 p-4 rounded-2xl border border-arena/30">
+            {image && (
+              <img src={image} alt="Previsualización" className="w-16 h-16 rounded-xl object-cover shadow-sm border border-arena bg-arena" />
+            )}
+            <div className="flex-1 w-full">
+              <input
+                id="class-image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+              <label
+                htmlFor="class-image-upload"
+                className="flex items-center justify-center w-full rounded-full border border-salvia/30 text-salvia bg-transparent px-4 py-2 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-salvia/10 select-none transition-colors text-center"
+              >
+                {uploading ? 'Subiendo...' : image ? 'Cambiar Foto' : 'Subir Foto'}
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-2 py-2">
           <input
             id="featured"
@@ -221,7 +272,7 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
           </Button>
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || uploading}
             className="rounded-full bg-salvia px-6 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md"
           >
             {loading ? 'Guardando...' : 'Guardar Clase'}

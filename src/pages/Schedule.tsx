@@ -138,7 +138,7 @@ export function Schedule() {
                 <Card className="overflow-hidden rounded-[32px] border-[8px] border-white bg-arena shadow-xl transition-transform hover:-translate-y-1 hover:shadow-2xl">
                   <div className="h-56 p-6 flex flex-col justify-end relative overflow-hidden rounded-t-[24px]">
                      <div className="absolute inset-0">
-                         <img src={`https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?q=80&w=500&auto=format&fit=crop&sig=${c.id}`} alt="Yoga Class" className="w-full h-full object-cover mix-blend-overlay opacity-60" />
+                         <img src={c.image || `https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?q=80&w=500&auto=format&fit=crop&sig=${c.id}`} alt="Yoga Class" className="w-full h-full object-cover mix-blend-overlay opacity-60" />
                      </div>
                      <div className="relative z-10 bg-white/90 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest text-terracota w-fit mb-2 shadow-sm">
                         {c.level}

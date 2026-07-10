@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Label } from './ui/Label';
@@ -28,6 +29,7 @@ export function AdminRetreatForm({ retreatToEdit, onSuccess, onCancel }: AdminRe
   const [date, setDate] = useState('');
   const [price, setPrice] = useState('');
   const [image, setImage] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -49,6 +51,24 @@ export function AdminRetreatForm({ retreatToEdit, onSuccess, onCancel }: AdminRe
       setDescription('');
     }
   }, [retreatToEdit]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const fileRef = ref(storage, `retreats/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      setImage(url);
+    } catch (err: any) {
+      console.error("Error uploading retreat image:", err);
+      setError(err.message || 'Error al subir la imagen del retiro.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,17 +170,37 @@ export function AdminRetreatForm({ retreatToEdit, onSuccess, onCancel }: AdminRe
             />
           </div>
 
+          {/* UPLOAD FILE CONTAINER */}
           <div className="space-y-1">
-            <Label htmlFor="image" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">URL de la Imagen</Label>
-            <Input
-              id="image"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia"
-              placeholder="Ej. https://images.unsplash.com/..."
-            />
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Imagen del Retiro</Label>
+            <div className="flex items-center gap-2">
+              <input
+                id="retreat-image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+              <label
+                htmlFor="retreat-image-upload"
+                className="flex items-center justify-center w-full rounded-full border border-salvia/30 text-salvia bg-transparent py-2.5 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-salvia/10 select-none transition-colors text-center border-dashed border-2"
+              >
+                {uploading ? 'Subiendo...' : image ? 'Cambiar Imagen' : 'Seleccionar Foto'}
+              </label>
+            </div>
           </div>
         </div>
+
+        {/* IMAGE PREVIEW CARD */}
+        {image && (
+          <div className="rounded-2xl overflow-hidden border border-arena shadow-sm h-36 bg-white relative">
+            <img src={image} alt="Previsualización" className="w-full h-full object-cover" />
+            <div className="absolute bottom-2 right-2 bg-white/85 px-3 py-1 rounded-full text-[9px] font-bold text-salvia shadow-sm uppercase tracking-wide">
+              Lista para guardar
+            </div>
+          </div>
+        )}
 
         <div className="space-y-1">
           <Label htmlFor="description" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Descripción</Label>
@@ -186,7 +226,7 @@ export function AdminRetreatForm({ retreatToEdit, onSuccess, onCancel }: AdminRe
           </Button>
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || uploading}
             className="rounded-full bg-salvia px-6 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md"
           >
             {loading ? 'Guardando...' : 'Guardar Retiro'}
