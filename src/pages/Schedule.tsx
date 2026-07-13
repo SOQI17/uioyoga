@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, deleteDoc, doc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, deleteDoc, doc, addDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -85,32 +85,75 @@ export function Schedule() {
       return;
     }
 
-    const classBookings = bookings[c.id] || [];
-    const isAlreadyBooked = userBookedIds.has(c.id);
-
-    if (isAlreadyBooked) {
-      await handleCancelBook(c.id);
-      return;
-    }
-
-    if (classBookings.length >= c.capacity) {
-      alert("Lo sentimos, esta clase ya está llena.");
-      return;
-    }
+    const isAdmin = userData?.role === 'admin';
 
     setBookingLoading(c.id);
     try {
+      // 1. Fetch fresh user data to verify subscription
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        alert("No se pudo verificar tu perfil de usuario.");
+        return;
+      }
+      
+      const uData = userSnap.data();
+
+      // Check subscription for non-admins
+      if (!isAdmin) {
+        if (!uData.subscriptionActive) {
+          alert("Tu suscripción no está activa. Por favor contacta al administrador para registrar tu pago.");
+          return;
+        }
+
+        // Check expiration
+        if (uData.subscriptionExpiry && new Date(uData.subscriptionExpiry) < new Date()) {
+          alert("Tu suscripción ha expirado. Por favor contacta al administrador para renovarla.");
+          await updateDoc(userRef, { subscriptionActive: false });
+          return;
+        }
+
+        // Check credit balance
+        if (!uData.unlimitedClasses && (!uData.classesRemaining || uData.classesRemaining <= 0)) {
+          alert("No te quedan clases disponibles en tu saldo mensual. Por favor contacta al administrador.");
+          return;
+        }
+      }
+
+      // Check if already booked
+      const classBookings = bookings[c.id] || [];
+      const isAlreadyBooked = userBookedIds.has(c.id);
+
+      if (isAlreadyBooked) {
+        await handleCancelBook(c.id);
+        return;
+      }
+
+      // Check capacity
+      if (classBookings.length >= c.capacity) {
+        alert("Lo sentimos, esta clase ya está llena.");
+        return;
+      }
+
+      // 2. Save booking
       const bookingData = {
         classId: c.id,
         className: c.title,
         classDate: c.date,
         userId: user.uid,
-        userName: userData?.name || user.displayName || 'Alumno',
+        userName: uData.name || user.displayName || 'Alumno',
         userEmail: user.email || '',
         bookedAt: new Date().toISOString()
       };
 
       await addDoc(collection(db, 'bookings'), bookingData);
+
+      // 3. Decrement credit count if not unlimited and not admin
+      if (!isAdmin && !uData.unlimitedClasses) {
+        const newCredits = Math.max(0, (uData.classesRemaining || 0) - 1);
+        await updateDoc(userRef, { classesRemaining: newCredits });
+      }
+
       alert("¡Reserva confirmada con éxito!");
       await fetchClasses();
     } catch (err: any) {
@@ -125,12 +168,29 @@ export function Schedule() {
     if (!user) return;
     if (!window.confirm("¿Deseas cancelar tu reserva para esta clase?")) return;
 
+    const isAdmin = userData?.role === 'admin';
+
     setBookingLoading(classId);
     try {
       const classBookings = bookings[classId] || [];
       const userBooking = classBookings.find(b => b.userId === user.uid);
       if (userBooking) {
+        // 1. Delete booking doc
         await deleteDoc(doc(db, 'bookings', userBooking.id));
+
+        // 2. Refund credit if not unlimited and not admin
+        if (!isAdmin) {
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const uData = userSnap.data();
+            if (!uData.unlimitedClasses) {
+              const newCredits = (uData.classesRemaining || 0) + 1;
+              await updateDoc(userRef, { classesRemaining: newCredits });
+            }
+          }
+        }
+
         alert("Reserva cancelada correctamente.");
         await fetchClasses();
       }

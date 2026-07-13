@@ -10,6 +10,13 @@ export interface UserData {
   phone?: string;
   role: 'admin' | 'instructor' | 'student';
   membershipId?: string;
+  subscriptionActive?: boolean;
+  classesRemaining?: number;
+  unlimitedClasses?: boolean;
+  subscriptionExpiry?: string;
+  subscriptionType?: string;
+  lastPaymentDate?: string;
+  lastPaymentAmount?: number;
 }
 
 interface AuthState {

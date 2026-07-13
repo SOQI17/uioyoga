@@ -3,6 +3,8 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Label } from '../components/ui/Label';
+import { Input } from '../components/ui/Input';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
@@ -47,7 +49,7 @@ export function Dashboard() {
 
   // State for Bookings & Weekly view
   const [bookings, setBookings] = useState<Record<string, any[]>>({});
-  const [viewMode, setViewMode] = useState<'list' | 'weekly'>('weekly');
+  const [viewMode, setViewMode] = useState<'weekly' | 'list'>('weekly');
   const [currentWeekDate, setCurrentWeekDate] = useState(new Date());
   
   // Student List inspection modal
@@ -67,6 +69,15 @@ export function Dashboard() {
   // State for Collaborators
   const [users, setUsers] = useState<UserData[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+
+  // Payment registration modal state
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedUserForPayment, setSelectedUserForPayment] = useState<UserData | null>(null);
+  const [paymentPlan, setPaymentPlan] = useState<'4' | '8' | '12' | 'unlimited' | 'custom'>('8');
+  const [customClassesCount, setCustomClassesCount] = useState(8);
+  const [paymentExpiry, setPaymentExpiry] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   // Active Admin Tab
   const [activeTab, setActiveTab] = useState<'classes' | 'retreats' | 'home' | 'users'>('classes');
@@ -117,7 +128,24 @@ export function Dashboard() {
   const handleCancelStudentBooking = async (bookingId: string) => {
     if (!window.confirm("¿Seguro que deseas cancelar esta reserva?")) return;
     try {
-      await deleteDoc(doc(db, 'bookings', bookingId));
+      // 1. Retrieve booking info to refund class credit
+      const bookingsRef = collection(db, 'bookings');
+      const q = query(bookingsRef, where('__name__', '==', bookingId));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const bookingData = snap.docs[0].data();
+        
+        // 2. Delete booking
+        await deleteDoc(doc(db, 'bookings', bookingId));
+
+        // 3. Increment student class credit
+        const userRef = doc(db, 'users', user.uid);
+        if (userData && !userData.unlimitedClasses) {
+          const newCredits = (userData.classesRemaining || 0) + 1;
+          await setDoc(userRef, { classesRemaining: newCredits }, { merge: true });
+        }
+      }
+
       alert("Reserva cancelada correctamente.");
       fetchStudentBookings();
     } catch (err) {
@@ -129,9 +157,30 @@ export function Dashboard() {
   const handleRemoveStudentFromClass = async (bookingId: string) => {
     if (!window.confirm("¿Seguro que deseas remover a este alumno de la clase?")) return;
     try {
-      await deleteDoc(doc(db, 'bookings', bookingId));
+      // 1. Retrieve booking info to refund credits to the student
+      const bookingsRef = collection(db, 'bookings');
+      const snap = await getDocs(query(bookingsRef, where('__name__', '==', bookingId)));
+      if (!snap.empty) {
+        const bData = snap.docs[0].data();
+
+        // 2. Delete booking
+        await deleteDoc(doc(db, 'bookings', bookingId));
+
+        // 3. Refund credit to student user profile
+        const studentRef = doc(db, 'users', bData.userId);
+        const studentSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', bData.userId)));
+        if (!studentSnap.empty) {
+          const studentProfile = studentSnap.docs[0].data();
+          if (!studentProfile.unlimitedClasses) {
+            const newCredits = (studentProfile.classesRemaining || 0) + 1;
+            await setDoc(studentRef, { classesRemaining: newCredits }, { merge: true });
+          }
+        }
+      }
+
       alert("Alumno removido con éxito.");
-      fetchClasses(); // Refresh counts
+      fetchClasses();
+      fetchUsers();
     } catch (err) {
       console.error("Error removing student booking:", err);
       alert("No se pudo remover al alumno.");
@@ -180,6 +229,71 @@ export function Dashboard() {
     }
   };
 
+  const openPaymentModal = (student: UserData) => {
+    setSelectedUserForPayment(student);
+    setPaymentPlan('8');
+    setCustomClassesCount(8);
+    setPaymentAmount('');
+    
+    // Default expiration: 30 days from now
+    const defaultExpiry = new Date();
+    defaultExpiry.setDate(defaultExpiry.getDate() + 30);
+    setPaymentExpiry(defaultExpiry.toISOString().split('T')[0]);
+    
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleSavePayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUserForPayment) return;
+    setPaymentLoading(true);
+    
+    let classesCount = 0;
+    let isUnlimited = false;
+    let planType = '';
+
+    if (paymentPlan === '4') {
+      classesCount = 4;
+      planType = '4 Clases';
+    } else if (paymentPlan === '8') {
+      classesCount = 8;
+      planType = '8 Clases';
+    } else if (paymentPlan === '12') {
+      classesCount = 12;
+      planType = '12 Clases';
+    } else if (paymentPlan === 'unlimited') {
+      classesCount = 9999;
+      isUnlimited = true;
+      planType = 'Ilimitado';
+    } else {
+      classesCount = Number(customClassesCount);
+      planType = 'Personalizado';
+    }
+
+    try {
+      const userRef = doc(db, 'users', selectedUserForPayment.uid);
+      await setDoc(userRef, {
+        subscriptionActive: true,
+        classesRemaining: classesCount,
+        unlimitedClasses: isUnlimited,
+        subscriptionType: planType,
+        subscriptionExpiry: new Date(paymentExpiry).toISOString(),
+        lastPaymentDate: new Date().toISOString(),
+        lastPaymentAmount: Number(paymentAmount) || 0
+      }, { merge: true });
+
+      alert(`¡Pago registrado con éxito para ${selectedUserForPayment.name || 'el usuario'}!`);
+      setIsPaymentModalOpen(false);
+      setSelectedUserForPayment(null);
+      fetchUsers();
+    } catch (err) {
+      console.error("Error saving payment details:", err);
+      alert("No se pudo registrar el pago.");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!loading && !user) {
       navigate('/login');
@@ -223,11 +337,10 @@ export function Dashboard() {
     }
   };
 
-  // Helper function to calculate the 7 days of the selected week (starts on Monday)
   const getDaysOfWeek = (currentDate: Date) => {
     const temp = new Date(currentDate);
     const day = temp.getDay();
-    const diff = temp.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday (0)
+    const diff = temp.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(temp.setDate(diff));
     monday.setHours(0, 0, 0, 0);
 
@@ -294,6 +407,98 @@ export function Dashboard() {
               setClassToEdit(null);
             }}
           />
+        </div>
+      )}
+
+      {/* MODAL PARA REGISTRAR PAGOS Y SUSCRIPCIONES */}
+      {isPaymentModalOpen && selectedUserForPayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md rounded-[32px] border-[8px] border-white bg-arena shadow-xl p-8 relative overflow-hidden"
+          >
+            <h3 className="font-serif text-2xl text-gris mb-1">Registrar Pago / Pase</h3>
+            <p className="text-xs text-gris/60 mb-6">Administrar saldo para: <span className="font-bold text-salvia">{selectedUserForPayment.name}</span></p>
+
+            <form onSubmit={handleSavePayment} className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="plan" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Plan o Paquete</Label>
+                <select
+                  id="plan"
+                  value={paymentPlan}
+                  onChange={(e) => setPaymentPlan(e.target.value as any)}
+                  className="flex h-10 w-full rounded-2xl border-none bg-white px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-salvia"
+                >
+                  <option value="4">4 Clases Mensuales</option>
+                  <option value="8">8 Clases Mensuales</option>
+                  <option value="12">12 Clases Mensuales</option>
+                  <option value="unlimited">Pase Ilimitado Mensual</option>
+                  <option value="custom">Saldo Personalizado</option>
+                </select>
+              </div>
+
+              {paymentPlan === 'custom' && (
+                <div className="space-y-1">
+                  <Label htmlFor="customCount" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Cantidad de Clases</Label>
+                  <Input
+                    id="customCount"
+                    type="number"
+                    min="1"
+                    required
+                    value={customClassesCount}
+                    onChange={(e) => setCustomClassesCount(Number(e.target.value))}
+                    className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <Label htmlFor="expiry" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Fecha de Vencimiento</Label>
+                <Input
+                  id="expiry"
+                  type="date"
+                  required
+                  value={paymentExpiry}
+                  onChange={(e) => setPaymentExpiry(e.target.value)}
+                  className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="amount" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Monto de Pago ($)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="Ej. $80"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsPaymentModalOpen(false);
+                    setSelectedUserForPayment(null);
+                  }}
+                  className="rounded-full border border-gris/20 px-6 py-2 text-xs font-bold uppercase tracking-widest text-gris hover:bg-white/50"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={paymentLoading}
+                  className="rounded-full bg-salvia px-6 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md"
+                >
+                  {paymentLoading ? 'Guardando...' : 'Registrar'}
+                </Button>
+              </div>
+            </form>
+          </motion.div>
         </div>
       )}
 
@@ -420,7 +625,7 @@ export function Dashboard() {
                 activeTab === 'users' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
               }`}
             >
-              Colaboradores
+              Colaboradores & Pagos
             </button>
           </motion.div>
         )}
@@ -455,6 +660,49 @@ export function Dashboard() {
                 </Button>
               </CardContent>
             </Card>
+
+            {userData.role !== 'admin' && (
+              <Card className="rounded-[32px] border-[8px] border-white bg-arena shadow-xl">
+                <CardHeader className="px-8 pt-8 pb-4 border-b border-white/50">
+                  <CardTitle className="font-serif text-2xl text-salvia">Mi Suscripción</CardTitle>
+                </CardHeader>
+                <CardContent className="px-8 py-6 space-y-4 text-gris/80 text-sm">
+                  {userData.subscriptionActive ? (
+                    <>
+                      <div className="flex justify-between items-center border-b border-white/50 pb-2">
+                        <span className="text-xs uppercase tracking-widest opacity-60 font-medium">Estado</span>
+                        <span className="font-bold text-salvia uppercase text-[10px] bg-salvia/10 px-2.5 py-0.5 rounded-full">Activa</span>
+                      </div>
+                      <div className="flex justify-between items-center border-b border-white/50 pb-2">
+                        <span className="text-xs uppercase tracking-widest opacity-60 font-medium">Plan</span>
+                        <span className="font-semibold text-gris">{userData.subscriptionType || 'Plan Mensual'}</span>
+                      </div>
+                      <div className="flex justify-between items-center border-b border-white/50 pb-2">
+                        <span className="text-xs uppercase tracking-widest opacity-60 font-medium">Clases Disponibles</span>
+                        <span className="font-bold text-gris text-lg">
+                          {userData.unlimitedClasses ? 'Ilimitado' : `${userData.classesRemaining || 0} pases`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pb-1">
+                        <span className="text-xs uppercase tracking-widest opacity-60 font-medium">Expira el</span>
+                        <span className="font-medium text-gris/70">
+                          {userData.subscriptionExpiry ? format(new Date(userData.subscriptionExpiry), 'dd/MM/yyyy') : 'N/A'}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-4 space-y-4">
+                      <p className="text-xs text-red-500 font-bold bg-red-50 p-3 rounded-2xl border border-red-100 uppercase tracking-wider">
+                        Suscripción Inactiva
+                      </p>
+                      <p className="text-xs text-gris/60 leading-relaxed">
+                        Tu pase mensual no está activo. Ponte en contacto con el instructor o administrador de Kukut Yoga para registrar tu pago e iniciar tus clases.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {userData.role !== 'admin' && (
               <Card className="rounded-[32px] border-[8px] border-white bg-terracota/10 shadow-xl overflow-hidden relative">
@@ -753,12 +1001,12 @@ export function Dashboard() {
                   </Card>
                 )}
 
-                {/* 4. GESTIÓN DE COLABORADORES */}
+                {/* 4. GESTIÓN DE COLABORADORES Y PAGOS */}
                 {activeTab === 'users' && (
                   <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden">
                     <CardHeader className="px-8 pt-8 pb-4">
-                      <CardTitle className="font-serif text-2xl text-gris">Gestión de Colaboradores</CardTitle>
-                      <p className="text-xs text-gris/60">Asigna roles administrativos a tus colaboradores</p>
+                      <CardTitle className="font-serif text-2xl text-gris">Control de Colaboradores & Suscripciones</CardTitle>
+                      <p className="text-xs text-gris/60">Monitorea roles y gestiona cobros o saldo de clases para alumnos</p>
                     </CardHeader>
                     <CardContent className="px-8 pb-8">
                       {usersLoading ? (
@@ -768,12 +1016,43 @@ export function Dashboard() {
                       ) : users.length > 0 ? (
                         <div className="divide-y divide-gris/10 max-h-[450px] overflow-y-auto pr-2">
                           {users.map((u) => (
-                            <div key={u.uid} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                              <div>
-                                <h4 className="font-serif text-lg text-gris font-medium">{u.name || 'Usuario'}</h4>
+                            <div key={u.uid} className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                              <div className="space-y-1.5 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-serif text-lg text-gris font-medium">{u.name || 'Usuario'}</h4>
+                                  <span className="capitalize text-[8px] font-bold tracking-wider px-2 py-0.5 bg-arena text-gris/70 rounded-full border border-arena/30">
+                                    {u.role === 'student' ? 'Alumno' : u.role}
+                                  </span>
+                                </div>
                                 <p className="text-xs text-gris/60">{u.email}</p>
+                                
+                                {/* Info de membresía */}
+                                {u.role === 'student' && (
+                                  <div className="mt-2 text-[11px] space-y-1 bg-marfil/60 p-3 rounded-2xl border border-arena/20 w-fit">
+                                    <p>
+                                      Suscripción: {' '}
+                                      <span className={`font-bold ${u.subscriptionActive ? 'text-salvia' : 'text-red-500'}`}>
+                                        {u.subscriptionActive ? 'Activa' : 'Inactiva'}
+                                      </span>
+                                    </p>
+                                    {u.subscriptionActive && (
+                                      <>
+                                        <p>Saldo: <span className="font-bold text-gris">{u.unlimitedClasses ? 'Acceso Ilimitado' : `${u.classesRemaining} clases`}</span> ({u.subscriptionType})</p>
+                                        <p className="text-[9px] text-gris/40 font-medium">Expira: {u.subscriptionExpiry ? format(new Date(u.subscriptionExpiry), 'dd/MM/yyyy') : 'N/A'}</p>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                              <div>
+                              <div className="flex flex-wrap gap-2 items-center">
+                                {u.role === 'student' && (
+                                  <Button 
+                                    onClick={() => openPaymentModal(u)}
+                                    className="rounded-full bg-salvia px-4 py-2 text-[9px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-sm"
+                                  >
+                                    Registrar Pago
+                                  </Button>
+                                )}
                                 <select
                                   value={u.role || 'student'}
                                   disabled={u.uid === userData.uid}
