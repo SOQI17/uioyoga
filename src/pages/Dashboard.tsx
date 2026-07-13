@@ -246,6 +246,42 @@ export function Dashboard() {
     }
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    if (userId === userData.uid) {
+      alert("No puedes eliminar tu propia cuenta.");
+      return;
+    }
+    if (!window.confirm("¿Estás seguro de que deseas eliminar permanentemente a este usuario? Esta acción es irreversible.")) return;
+    try {
+      await deleteDoc(doc(db, 'users', userId));
+      alert("Usuario eliminado correctamente.");
+      fetchUsers();
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      alert("No se pudo eliminar al usuario.");
+    }
+  };
+
+  const handleDeleteSubscription = async (studentId: string) => {
+    if (!window.confirm("¿Estás seguro de que deseas desactivar y eliminar la suscripción activa de este alumno? Su saldo de clases y vigencia volverán a cero.")) return;
+    try {
+      await setDoc(doc(db, 'users', studentId), {
+        subscriptionActive: false,
+        classesRemaining: 0,
+        unlimitedClasses: false,
+        subscriptionExpiry: "",
+        subscriptionType: "",
+        lastPaymentDate: "",
+        lastPaymentAmount: 0
+      }, { merge: true });
+      alert("Suscripción eliminada con éxito.");
+      fetchUsers();
+    } catch (err) {
+      console.error("Error resetting subscription:", err);
+      alert("No se pudo eliminar la suscripción.");
+    }
+  };
+
   const openPaymentModal = (student: UserData) => {
     setSelectedUserForPayment(student);
     setPaymentPlan('8');
@@ -1211,6 +1247,16 @@ export function Dashboard() {
                                       Aceptar
                                     </Button>
                                   )}
+
+                                  {u.uid !== userData.uid && (
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => handleDeleteUser(u.uid)}
+                                      className="rounded-full border border-red-200 px-4 py-2 text-[9px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-50"
+                                    >
+                                      Eliminar
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -1273,6 +1319,14 @@ export function Dashboard() {
                                 >
                                   Registrar Pago
                                 </Button>
+                                {u.subscriptionActive && (
+                                  <Button 
+                                    onClick={() => handleDeleteSubscription(u.uid)}
+                                    className="rounded-full border border-red-200 px-4 py-2 text-[9px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-50"
+                                  >
+                                    Eliminar Suscripción
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           ))}
