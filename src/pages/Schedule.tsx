@@ -273,6 +273,7 @@ export function Schedule() {
               const spotsAvailable = c.capacity - spotsTaken;
               const isAlreadyBooked = userBookedIds.has(c.id);
               const isFull = spotsAvailable <= 0;
+              const isInactive = userData && userData.role !== 'admin' && !userData.subscriptionActive;
 
               return (
                 <motion.div
@@ -345,23 +346,27 @@ export function Schedule() {
                           </>
                         ) : (
                           <Button 
-                            disabled={bookingLoading === c.id || (isFull && !isAlreadyBooked)}
+                            disabled={bookingLoading === c.id || (isFull && !isAlreadyBooked) || (isInactive && !isAlreadyBooked)}
                             onClick={() => handleBook(c)} 
                             className={`w-full rounded-full py-6 text-xs font-bold uppercase tracking-widest text-white transition-colors ${
                               isAlreadyBooked 
                                 ? 'bg-terracota hover:bg-red-600 shadow-md' 
-                                : isFull 
-                                  ? 'bg-gris/40 cursor-not-allowed' 
-                                  : 'bg-gris hover:bg-salvia'
+                                : isInactive
+                                  ? 'bg-red-50 text-red-600 border border-red-200 cursor-not-allowed hover:bg-red-50'
+                                  : isFull 
+                                    ? 'bg-gris/40 cursor-not-allowed' 
+                                    : 'bg-gris hover:bg-salvia'
                             }`}
                           >
                             {bookingLoading === c.id 
                               ? 'Procesando...' 
                               : isAlreadyBooked 
                                 ? 'Cancelar Reserva' 
-                                : isFull 
-                                  ? 'Sin Cupos' 
-                                  : 'Reservar Espacio'}
+                                : isInactive
+                                  ? 'Suscripción Inactiva'
+                                  : isFull 
+                                    ? 'Sin Cupos' 
+                                    : 'Reservar Espacio'}
                           </Button>
                         )}
                       </div>

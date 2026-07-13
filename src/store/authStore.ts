@@ -63,6 +63,9 @@ export const useAuthStore = create<AuthState>((set) => ({
               name: user.displayName || user.email?.split('@')[0] || 'Usuario',
               email: user.email || '',
               role: isAdmin ? 'admin' : 'student',
+              subscriptionActive: false,
+              classesRemaining: 0,
+              unlimitedClasses: false,
             };
             set({ userData: fallbackUserData });
 

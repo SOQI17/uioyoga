@@ -28,6 +28,9 @@ export function Register() {
         name,
         email,
         role: 'student',
+        subscriptionActive: false,
+        classesRemaining: 0,
+        unlimitedClasses: false,
         createdAt: new Date().toISOString()
       });
       navigate('/dashboard');
