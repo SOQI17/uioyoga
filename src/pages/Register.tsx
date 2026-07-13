@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { Button } from '../components/ui/Button';
@@ -39,6 +39,16 @@ export function Register() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Error con Google Register');
     }
   };
 
@@ -107,6 +117,21 @@ export function Register() {
             {loading ? 'Creando cuenta...' : 'Crear cuenta'}
           </Button>
         </form>
+
+        <div className="my-8 flex items-center relative z-10">
+          <div className="flex-1 border-t border-gris/10"></div>
+          <span className="px-4 text-[10px] font-bold uppercase tracking-widest text-gris/40">O continúa con</span>
+          <div className="flex-1 border-t border-gris/10"></div>
+        </div>
+
+        <Button 
+          variant="outline" 
+          onClick={handleGoogleRegister}
+          className="w-full rounded-full border border-white bg-white/50 py-6 text-xs font-bold tracking-widest uppercase text-gris hover:bg-white relative z-10 transition-colors"
+        >
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="mr-3 h-4 w-4" />
+          Google
+        </Button>
 
         <p className="mt-8 text-center text-xs text-gris/70 relative z-10">
           ¿Ya tienes una cuenta?{' '}
