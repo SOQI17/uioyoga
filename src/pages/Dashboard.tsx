@@ -8,7 +8,7 @@ import { Input } from '../components/ui/Input';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy, deleteDoc, doc, setDoc, where } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, deleteDoc, doc, setDoc, where, addDoc } from 'firebase/firestore';
 import { AdminClassForm } from '../components/AdminClassForm';
 import { AdminRetreatForm } from '../components/AdminRetreatForm';
 import { AdminHomeSettings } from '../components/AdminHomeSettings';
@@ -70,6 +70,9 @@ export function Dashboard() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
+  // Pending roles change state
+  const [pendingRoles, setPendingRoles] = useState<Record<string, 'student' | 'instructor' | 'admin'>>({});
+
   // Payment registration modal state
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedUserForPayment, setSelectedUserForPayment] = useState<UserData | null>(null);
@@ -79,8 +82,14 @@ export function Dashboard() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentLoading, setPaymentLoading] = useState(false);
 
+  // Detailed student file modal state (payment log, date entered)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedStudentForDetails, setSelectedStudentForDetails] = useState<UserData | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'classes' | 'retreats' | 'home' | 'users'>('classes');
+  const [activeTab, setActiveTab] = useState<'classes' | 'retreats' | 'home' | 'users' | 'subscriptions'>('classes');
 
   const fetchClasses = async () => {
     if (!userData || userData.role !== 'admin') return;
@@ -215,17 +224,25 @@ export function Dashboard() {
     }
   };
 
-  const handleUpdateRole = async (userId: string, newRole: 'student' | 'instructor' | 'admin') => {
+  const handleSaveRole = async (userId: string) => {
+    const newRole = pendingRoles[userId];
+    if (!newRole) return;
     if (userId === userData.uid) {
       alert("No puedes cambiar tu propio rol.");
       return;
     }
     try {
       await setDoc(doc(db, 'users', userId), { role: newRole }, { merge: true });
+      alert("Rol actualizado correctamente.");
+      setPendingRoles(prev => {
+        const copy = { ...prev };
+        delete copy[userId];
+        return copy;
+      });
       fetchUsers();
     } catch (err) {
-      console.error("Error updating user role:", err);
-      alert("No se pudo actualizar el rol del usuario.");
+      console.error("Error saving user role:", err);
+      alert("No se pudo actualizar el rol.");
     }
   };
 
@@ -272,6 +289,8 @@ export function Dashboard() {
 
     try {
       const userRef = doc(db, 'users', selectedUserForPayment.uid);
+      
+      // 1. Update user profile subscription
       await setDoc(userRef, {
         subscriptionActive: true,
         classesRemaining: classesCount,
@@ -281,6 +300,16 @@ export function Dashboard() {
         lastPaymentDate: new Date().toISOString(),
         lastPaymentAmount: Number(paymentAmount) || 0
       }, { merge: true });
+
+      // 2. Log in payments history
+      await addDoc(collection(db, 'payments'), {
+        userId: selectedUserForPayment.uid,
+        userName: selectedUserForPayment.name || 'Alumno',
+        amount: Number(paymentAmount) || 0,
+        planType: planType,
+        date: new Date().toISOString(),
+        expiryDate: new Date(paymentExpiry).toISOString()
+      });
 
       alert(`¡Pago registrado con éxito para ${selectedUserForPayment.name || 'el usuario'}!`);
       setIsPaymentModalOpen(false);
@@ -292,6 +321,45 @@ export function Dashboard() {
     } finally {
       setPaymentLoading(false);
     }
+  };
+
+  const fetchPaymentHistory = async (studentId: string) => {
+    setHistoryLoading(true);
+    try {
+      const q = query(
+        collection(db, 'payments'),
+        where('userId', '==', studentId),
+        orderBy('date', 'desc')
+      );
+      const snap = await getDocs(q);
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPaymentHistory(fetched);
+    } catch (err) {
+      console.error("Error fetching payment history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const openDetailsModal = (student: UserData) => {
+    setSelectedStudentForDetails(student);
+    fetchPaymentHistory(student.uid);
+    setIsDetailsModalOpen(true);
+  };
+
+  const calculateMembershipDuration = (createdAtStr?: string) => {
+    if (!createdAtStr) return 'Miembro nuevo (menos de 1 mes)';
+    const created = new Date(createdAtStr);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - created.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffMonths = Math.floor(diffDays / 30);
+    
+    const formattedDate = format(created, "d 'de' MMMM, yyyy", { locale: es });
+    if (diffMonths === 0) {
+      return `Miembro desde el ${formattedDate} (Menos de 1 mes)`;
+    }
+    return `Miembro desde el ${formattedDate} (Antigüedad: ${diffMonths} ${diffMonths === 1 ? 'mes' : 'meses'})`;
   };
 
   useEffect(() => {
@@ -407,6 +475,90 @@ export function Dashboard() {
               setClassToEdit(null);
             }}
           />
+        </div>
+      )}
+
+      {/* MODAL EXPEDIENTE COMPLETO DEL ALUMNO */}
+      {isDetailsModalOpen && selectedStudentForDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-lg rounded-[32px] border-[8px] border-white bg-arena shadow-xl p-8 relative overflow-hidden"
+          >
+            <h3 className="font-serif text-2xl text-gris mb-1">Expediente de Suscripción</h3>
+            <p className="text-xs text-gris/60 mb-6">Detalles de: <span className="font-bold text-salvia">{selectedStudentForDetails.name}</span></p>
+
+            <div className="space-y-6 text-sm text-gris/85">
+              {/* Info de ingreso y antigüedad */}
+              <div className="bg-white/60 p-4 rounded-2xl border border-white">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Ingreso y Antigüedad</p>
+                <p className="font-medium text-gris">{calculateMembershipDuration(selectedStudentForDetails.createdAt)}</p>
+              </div>
+
+              {/* Info del plan activo */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/60 p-4 rounded-2xl border border-white">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Saldo de Clases</p>
+                  <p className="text-lg font-bold text-gris">
+                    {selectedStudentForDetails.unlimitedClasses ? 'Acceso Ilimitado' : `${selectedStudentForDetails.classesRemaining || 0} disponibles`}
+                  </p>
+                </div>
+                <div className="bg-white/60 p-4 rounded-2xl border border-white">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Vencimiento del Pase</p>
+                  <p className="text-lg font-medium text-gris">
+                    {selectedStudentForDetails.subscriptionExpiry ? format(new Date(selectedStudentForDetails.subscriptionExpiry), 'dd/MM/yyyy') : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Historial de Pagos / Caja */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-2">Historial de Pagos (Caja)</p>
+                
+                {historyLoading ? (
+                  <div className="flex justify-center py-6">
+                    <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                  </div>
+                ) : paymentHistory.length > 0 ? (
+                  <div className="border border-arena/40 rounded-2xl overflow-hidden bg-white/50 max-h-[160px] overflow-y-auto pr-1">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-arena/30 text-gris/60 border-b border-arena/20 font-bold uppercase tracking-wider sticky top-0 z-10">
+                          <th className="p-3">Fecha</th>
+                          <th className="p-3">Plan</th>
+                          <th className="p-3">Monto</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-arena/10">
+                        {paymentHistory.map((h) => (
+                          <tr key={h.id} className="text-gris/85">
+                            <td className="p-3 font-medium">{format(new Date(h.date), 'dd/MM/yyyy')}</td>
+                            <td className="p-3">{h.planType}</td>
+                            <td className="p-3 font-bold text-salvia">${h.amount} USD</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-center py-6 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">No se han registrado pagos para este alumno.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-6">
+              <Button
+                onClick={() => {
+                  setIsDetailsModalOpen(false);
+                  setSelectedStudentForDetails(null);
+                }}
+                className="rounded-full bg-gris px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia shadow-sm"
+              >
+                Cerrar Expediente
+              </Button>
+            </div>
+          </motion.div>
         </div>
       )}
 
@@ -625,7 +777,15 @@ export function Dashboard() {
                 activeTab === 'users' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
               }`}
             >
-              Colaboradores & Pagos
+              Colaboradores
+            </button>
+            <button
+              onClick={() => setActiveTab('subscriptions')}
+              className={`rounded-full px-8 py-3 transition-all ${
+                activeTab === 'subscriptions' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+              }`}
+            >
+              Suscripciones & Caja
             </button>
           </motion.div>
         )}
@@ -1001,12 +1161,12 @@ export function Dashboard() {
                   </Card>
                 )}
 
-                {/* 4. GESTIÓN DE COLABORADORES Y PAGOS */}
+                {/* 4. GESTIÓN DE COLABORADORES (CON BOTÓN DE ACEPTAR) */}
                 {activeTab === 'users' && (
                   <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden">
                     <CardHeader className="px-8 pt-8 pb-4">
-                      <CardTitle className="font-serif text-2xl text-gris">Control de Colaboradores & Suscripciones</CardTitle>
-                      <p className="text-xs text-gris/60">Monitorea roles y gestiona cobros o saldo de clases para alumnos</p>
+                      <CardTitle className="font-serif text-2xl text-gris">Control de Colaboradores</CardTitle>
+                      <p className="text-xs text-gris/60">Asigna roles administrativos e instructores en la plataforma</p>
                     </CardHeader>
                     <CardContent className="px-8 pb-8">
                       {usersLoading ? (
@@ -1015,61 +1175,111 @@ export function Dashboard() {
                         </div>
                       ) : users.length > 0 ? (
                         <div className="divide-y divide-gris/10 max-h-[450px] overflow-y-auto pr-2">
-                          {users.map((u) => (
+                          {users.map((u) => {
+                            const hasPendingChange = pendingRoles[u.uid] !== undefined && pendingRoles[u.uid] !== u.role;
+                            return (
+                              <div key={u.uid} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-serif text-lg text-gris font-medium">{u.name || 'Usuario'}</h4>
+                                    <span className="capitalize text-[8px] font-bold tracking-wider px-2 py-0.5 bg-arena text-gris/70 rounded-full border border-arena/30">
+                                      {u.role}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gris/60 mt-0.5">{u.email}</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <select
+                                    value={pendingRoles[u.uid] !== undefined ? pendingRoles[u.uid] : (u.role || 'student')}
+                                    disabled={u.uid === userData.uid}
+                                    onChange={(e) => {
+                                      const val = e.target.value as 'student' | 'instructor' | 'admin';
+                                      setPendingRoles(prev => ({ ...prev, [u.uid]: val }));
+                                    }}
+                                    className="rounded-full border border-arena bg-arena text-gris px-4 py-2 text-xs font-bold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-salvia disabled:opacity-50"
+                                  >
+                                    <option value="student">Alumno</option>
+                                    <option value="instructor">Instructor</option>
+                                    <option value="admin">Administrador</option>
+                                  </select>
+
+                                  {hasPendingChange && (
+                                    <Button
+                                      onClick={() => handleSaveRole(u.uid)}
+                                      className="rounded-full bg-salvia px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-sm"
+                                    >
+                                      Aceptar
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gris/60 text-sm">
+                          No hay colaboradores registrados.
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* 5. GESTIÓN DE SUSCRIPCIONES & CAJA (CON LOG DE PAGOS) */}
+                {activeTab === 'subscriptions' && (
+                  <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden">
+                    <CardHeader className="px-8 pt-8 pb-4">
+                      <CardTitle className="font-serif text-2xl text-gris">Suscripciones & Caja</CardTitle>
+                      <p className="text-xs text-gris/60">Gestiona membresías, créditos y consulta expedientes con historial de cobros</p>
+                    </CardHeader>
+                    <CardContent className="px-8 pb-8">
+                      {usersLoading ? (
+                        <div className="flex justify-center py-8">
+                          <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                        </div>
+                      ) : users.filter(u => u.role === 'student').length > 0 ? (
+                        <div className="divide-y divide-gris/10 max-h-[450px] overflow-y-auto pr-2">
+                          {users.filter(u => u.role === 'student').map((u) => (
                             <div key={u.uid} className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                               <div className="space-y-1.5 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-serif text-lg text-gris font-medium">{u.name || 'Usuario'}</h4>
-                                  <span className="capitalize text-[8px] font-bold tracking-wider px-2 py-0.5 bg-arena text-gris/70 rounded-full border border-arena/30">
-                                    {u.role === 'student' ? 'Alumno' : u.role}
-                                  </span>
-                                </div>
+                                <h4 className="font-serif text-lg text-gris font-medium">{u.name || 'Alumno'}</h4>
                                 <p className="text-xs text-gris/60">{u.email}</p>
                                 
-                                {/* Info de membresía */}
-                                {u.role === 'student' && (
-                                  <div className="mt-2 text-[11px] space-y-1 bg-marfil/60 p-3 rounded-2xl border border-arena/20 w-fit">
-                                    <p>
-                                      Suscripción: {' '}
-                                      <span className={`font-bold ${u.subscriptionActive ? 'text-salvia' : 'text-red-500'}`}>
-                                        {u.subscriptionActive ? 'Activa' : 'Inactiva'}
-                                      </span>
-                                    </p>
-                                    {u.subscriptionActive && (
-                                      <>
-                                        <p>Saldo: <span className="font-bold text-gris">{u.unlimitedClasses ? 'Acceso Ilimitado' : `${u.classesRemaining} clases`}</span> ({u.subscriptionType})</p>
-                                        <p className="text-[9px] text-gris/40 font-medium">Expira: {u.subscriptionExpiry ? format(new Date(u.subscriptionExpiry), 'dd/MM/yyyy') : 'N/A'}</p>
-                                      </>
-                                    )}
-                                  </div>
-                                )}
+                                <div className="mt-2 text-[11px] space-y-1 bg-marfil/65 p-3 rounded-2xl border border-arena/20 w-fit">
+                                  <p>
+                                    Membresía:{' '}
+                                    <span className={`font-bold ${u.subscriptionActive ? 'text-salvia' : 'text-red-500'}`}>
+                                      {u.subscriptionActive ? 'Activa' : 'Inactiva'}
+                                    </span>
+                                  </p>
+                                  {u.subscriptionActive && (
+                                    <>
+                                      <p>Saldo: <span className="font-bold text-gris">{u.unlimitedClasses ? 'Pase Ilimitado' : `${u.classesRemaining} clases`}</span> ({u.subscriptionType})</p>
+                                      <p className="text-[9px] text-gris/40 font-semibold">Vence: {u.subscriptionExpiry ? format(new Date(u.subscriptionExpiry), 'dd/MM/yyyy') : 'N/A'}</p>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                               <div className="flex flex-wrap gap-2 items-center">
-                                {u.role === 'student' && (
-                                  <Button 
-                                    onClick={() => openPaymentModal(u)}
-                                    className="rounded-full bg-salvia px-4 py-2 text-[9px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-sm"
-                                  >
-                                    Registrar Pago
-                                  </Button>
-                                )}
-                                <select
-                                  value={u.role || 'student'}
-                                  disabled={u.uid === userData.uid}
-                                  onChange={(e) => handleUpdateRole(u.uid, e.target.value as 'student' | 'instructor' | 'admin')}
-                                  className="rounded-full border border-arena bg-arena text-gris px-4 py-2 text-xs font-bold uppercase tracking-wider focus:outline-none focus:ring-1 focus:ring-salvia disabled:opacity-50"
+                                <Button 
+                                  onClick={() => openDetailsModal(u)}
+                                  className="rounded-full border border-arena bg-transparent px-4 py-2 text-[9px] font-bold uppercase tracking-widest text-gris hover:bg-arena"
                                 >
-                                  <option value="student">Alumno</option>
-                                  <option value="instructor">Instructor</option>
-                                  <option value="admin">Administrador</option>
-                                </select>
+                                  Ver Expediente
+                                </Button>
+                                <Button 
+                                  onClick={() => openPaymentModal(u)}
+                                  className="rounded-full bg-salvia px-4 py-2 text-[9px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-sm"
+                                >
+                                  Registrar Pago
+                                </Button>
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : (
                         <div className="text-center py-8 text-gris/60 text-sm">
-                          No hay usuarios registrados.
+                          No hay alumnos registrados para administrar suscripciones.
                         </div>
                       )}
                     </CardContent>
