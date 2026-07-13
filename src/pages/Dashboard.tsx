@@ -851,9 +851,18 @@ export function Dashboard() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Rol de Cuenta</p>
                   <p className="font-medium capitalize">{userData.role}</p>
                 </div>
-                <Button className="w-full mt-4 rounded-full bg-salvia py-6 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md">
-                  Editar Perfil
-                </Button>
+                <div className="flex flex-col gap-2 pt-2">
+                  <Button className="w-full rounded-full bg-salvia py-6 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md">
+                    Editar Perfil
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleSignOut}
+                    className="w-full rounded-full border border-red-200 bg-transparent py-6 text-xs font-bold uppercase tracking-widest text-red-600 hover:bg-red-50 transition-colors shadow-sm"
+                  >
+                    Cerrar Sesión
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
