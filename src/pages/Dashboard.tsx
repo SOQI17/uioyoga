@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, deleteDoc, doc, setDoc, where } from 'firebase/firestore';
 import { AdminClassForm } from '../components/AdminClassForm';
 import { AdminRetreatForm } from '../components/AdminRetreatForm';
 import { AdminHomeSettings } from '../components/AdminHomeSettings';
@@ -22,6 +22,7 @@ interface YogaClass {
   date: string; // ISO string
   duration: number; // minutes
   featured?: boolean;
+  image?: string;
 }
 
 interface Retreat {
@@ -44,6 +45,19 @@ export function Dashboard() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [classToEdit, setClassToEdit] = useState<YogaClass | null>(null);
 
+  // State for Bookings & Weekly view
+  const [bookings, setBookings] = useState<Record<string, any[]>>({});
+  const [viewMode, setViewMode] = useState<'list' | 'weekly'>('weekly');
+  const [currentWeekDate, setCurrentWeekDate] = useState(new Date());
+  
+  // Student List inspection modal
+  const [isStudentListOpen, setIsStudentListOpen] = useState(false);
+  const [selectedClassForStudents, setSelectedClassForStudents] = useState<YogaClass | null>(null);
+
+  // Student specific bookings
+  const [studentBookings, setStudentBookings] = useState<any[]>([]);
+  const [studentBookingsLoading, setStudentBookingsLoading] = useState(false);
+
   // State for Retreats
   const [retreats, setRetreats] = useState<Retreat[]>([]);
   const [retreatsLoading, setRetreatsLoading] = useState(false);
@@ -57,24 +71,70 @@ export function Dashboard() {
   // Active Admin Tab
   const [activeTab, setActiveTab] = useState<'classes' | 'retreats' | 'home' | 'users'>('classes');
 
-  useEffect(() => {
-    if (user) {
-      console.log("Logged in user email:", user.email);
-    }
-  }, [user]);
-
   const fetchClasses = async () => {
     if (!userData || userData.role !== 'admin') return;
     setAdminLoading(true);
     try {
+      // 1. Fetch classes
       const q = query(collection(db, 'classes'), orderBy('date'));
       const snapshot = await getDocs(q);
       const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as YogaClass));
       setClasses(fetched);
+
+      // 2. Fetch bookings
+      const bookingsSnap = await getDocs(collection(db, 'bookings'));
+      const bookingsMap: Record<string, any[]> = {};
+      bookingsSnap.docs.forEach((d) => {
+        const data = d.data();
+        if (!bookingsMap[data.classId]) {
+          bookingsMap[data.classId] = [];
+        }
+        bookingsMap[data.classId].push({ id: d.id, ...data });
+      });
+      setBookings(bookingsMap);
     } catch (err) {
       console.error("Error fetching classes for admin:", err);
     } finally {
       setAdminLoading(false);
+    }
+  };
+
+  const fetchStudentBookings = async () => {
+    if (!user || userData?.role === 'admin') return;
+    setStudentBookingsLoading(true);
+    try {
+      const q = query(collection(db, 'bookings'), where('userId', '==', user.uid));
+      const snap = await getDocs(q);
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setStudentBookings(fetched);
+    } catch (err) {
+      console.error("Error fetching student bookings:", err);
+    } finally {
+      setStudentBookingsLoading(false);
+    }
+  };
+
+  const handleCancelStudentBooking = async (bookingId: string) => {
+    if (!window.confirm("¿Seguro que deseas cancelar esta reserva?")) return;
+    try {
+      await deleteDoc(doc(db, 'bookings', bookingId));
+      alert("Reserva cancelada correctamente.");
+      fetchStudentBookings();
+    } catch (err) {
+      console.error("Error cancelling booking:", err);
+      alert("No se pudo cancelar la reserva.");
+    }
+  };
+
+  const handleRemoveStudentFromClass = async (bookingId: string) => {
+    if (!window.confirm("¿Seguro que deseas remover a este alumno de la clase?")) return;
+    try {
+      await deleteDoc(doc(db, 'bookings', bookingId));
+      alert("Alumno removido con éxito.");
+      fetchClasses(); // Refresh counts
+    } catch (err) {
+      console.error("Error removing student booking:", err);
+      alert("No se pudo remover al alumno.");
     }
   };
 
@@ -131,8 +191,10 @@ export function Dashboard() {
       fetchClasses();
       fetchUsers();
       fetchRetreats();
+    } else if (user) {
+      fetchStudentBookings();
     }
-  }, [userData]);
+  }, [userData, user]);
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -159,6 +221,47 @@ export function Dashboard() {
       console.error("Error deleting retreat:", err);
       alert("No se pudo eliminar el retiro.");
     }
+  };
+
+  // Helper function to calculate the 7 days of the selected week (starts on Monday)
+  const getDaysOfWeek = (currentDate: Date) => {
+    const temp = new Date(currentDate);
+    const day = temp.getDay();
+    const diff = temp.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday (0)
+    const monday = new Date(temp.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  };
+
+  const isSameDate = (d1: Date, d2: Date) => {
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  };
+
+  const daysOfWeek = getDaysOfWeek(currentWeekDate);
+
+  const handlePrevWeek = () => {
+    const d = new Date(currentWeekDate);
+    d.setDate(d.getDate() - 7);
+    setCurrentWeekDate(d);
+  };
+
+  const handleNextWeek = () => {
+    const d = new Date(currentWeekDate);
+    d.setDate(d.getDate() + 7);
+    setCurrentWeekDate(d);
+  };
+
+  const handleToday = () => {
+    setCurrentWeekDate(new Date());
   };
 
   if (loading) {
@@ -191,6 +294,54 @@ export function Dashboard() {
               setClassToEdit(null);
             }}
           />
+        </div>
+      )}
+
+      {/* MODAL PARA VER ALUMNOS INSCRITOS */}
+      {isStudentListOpen && selectedClassForStudents && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md rounded-[32px] border-[8px] border-white bg-arena shadow-xl p-8 relative overflow-hidden"
+          >
+            <h3 className="font-serif text-2xl text-gris mb-1">Alumnos Registrados</h3>
+            <p className="text-xs text-gris/60 mb-6">{selectedClassForStudents.title} con {selectedClassForStudents.instructor}</p>
+
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+              {(bookings[selectedClassForStudents.id] || []).length > 0 ? (
+                (bookings[selectedClassForStudents.id] || []).map((b) => (
+                  <div key={b.id} className="flex justify-between items-center bg-white/60 p-3 rounded-2xl border border-white">
+                    <div>
+                      <p className="text-sm font-semibold text-gris">{b.userName}</p>
+                      <p className="text-[10px] text-gris/50">{b.userEmail}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleRemoveStudentFromClass(b.id)}
+                      className="rounded-full border border-red-200 px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-50"
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center py-6 text-sm text-gris/60">No hay alumnos registrados en esta clase.</p>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-6">
+              <Button
+                onClick={() => {
+                  setIsStudentListOpen(false);
+                  setSelectedClassForStudents(null);
+                }}
+                className="rounded-full bg-gris px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia"
+              >
+                Cerrar
+              </Button>
+            </div>
+          </motion.div>
         </div>
       )}
 
@@ -312,12 +463,14 @@ export function Dashboard() {
                      <h3 className="font-serif text-2xl font-bold text-terracota mb-8">Mi Progreso</h3>
                      <div className="flex justify-around">
                          <div className="space-y-2">
-                             <p className="text-5xl font-light text-gris">12</p>
-                             <p className="text-[10px] font-bold uppercase tracking-widest text-terracota">Clases</p>
+                             <p className="text-5xl font-light text-gris">{studentBookings.length}</p>
+                             <p className="text-[10px] font-bold uppercase tracking-widest text-terracota">Reservas</p>
                          </div>
                          <div className="w-px bg-terracota/20"></div>
                          <div className="space-y-2">
-                             <p className="text-5xl font-light text-gris">24</p>
+                             <p className="text-5xl font-light text-gris">
+                               {studentBookings.length * 1}
+                             </p>
                              <p className="text-[10px] font-bold uppercase tracking-widest text-terracota">Horas</p>
                          </div>
                      </div>
@@ -339,79 +492,178 @@ export function Dashboard() {
                 {/* 1. GESTIÓN DE CLASES */}
                 {activeTab === 'classes' && (
                   <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden">
-                    <CardHeader className="px-8 pt-8 pb-4 flex flex-row items-center justify-between">
-                      <div>
-                        <CardTitle className="font-serif text-2xl text-gris">Gestión de Clases</CardTitle>
-                        <p className="text-xs text-gris/60">Crea, edita, duplica o elimina horarios de yoga</p>
+                    <CardHeader className="px-8 pt-8 pb-4 flex flex-col gap-4">
+                      <div className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle className="font-serif text-2xl text-gris">Gestión de Clases</CardTitle>
+                          <p className="text-xs text-gris/60">Monitorea y agenda tus clases de yoga</p>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            setClassToEdit(null);
+                            setIsFormOpen(true);
+                          }}
+                          className="rounded-full bg-salvia px-6 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md"
+                        >
+                          Crear Clase
+                        </Button>
                       </div>
-                      <Button 
-                        onClick={() => {
-                          setClassToEdit(null);
-                          setIsFormOpen(true);
-                        }}
-                        className="rounded-full bg-salvia px-6 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md"
-                      >
-                        Crear Clase
-                      </Button>
+
+                      {/* selector de vista */}
+                      <div className="flex items-center justify-between border-t border-arena/30 pt-4 mt-2">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setViewMode('weekly')}
+                            className={`rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
+                              viewMode === 'weekly' ? 'bg-gris text-white' : 'bg-arena text-gris hover:bg-arena/80'
+                            }`}
+                          >
+                            Vista Semanal
+                          </button>
+                          <button
+                            onClick={() => setViewMode('list')}
+                            className={`rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
+                              viewMode === 'list' ? 'bg-gris text-white' : 'bg-arena text-gris hover:bg-arena/80'
+                            }`}
+                          >
+                            Vista Lista
+                          </button>
+                        </div>
+
+                        {viewMode === 'weekly' && (
+                          <div className="flex items-center gap-2">
+                            <button onClick={handlePrevWeek} className="text-sm font-bold text-gris hover:text-salvia px-2">←</button>
+                            <button onClick={handleToday} className="text-[9px] font-bold uppercase tracking-widest text-salvia hover:underline px-2">Hoy</button>
+                            <button onClick={handleNextWeek} className="text-sm font-bold text-gris hover:text-salvia px-2">→</button>
+                            <span className="text-[10px] font-bold text-gris/60 ml-2">
+                              Semana: {format(daysOfWeek[0], 'd MMM', { locale: es })} - {format(daysOfWeek[6], 'd MMM', { locale: es })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </CardHeader>
+                    
                     <CardContent className="px-8 pb-8">
                       {adminLoading ? (
                         <div className="flex justify-center py-8">
                           <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
                         </div>
                       ) : classes.length > 0 ? (
-                        <div className="divide-y divide-gris/10 max-h-[450px] overflow-y-auto pr-2">
-                          {classes.map((c) => (
-                            <div key={c.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-serif text-lg text-gris font-medium">{c.title}</h4>
-                                  {c.featured && (
-                                    <span className="bg-salvia/20 text-salvia px-2.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider">
-                                      Destacada
-                                    </span>
-                                  )}
+                        viewMode === 'list' ? (
+                          <div className="divide-y divide-gris/10 max-h-[450px] overflow-y-auto pr-2">
+                            {classes.map((c) => (
+                              <div key={c.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-serif text-lg text-gris font-medium">{c.title}</h4>
+                                    {c.featured && (
+                                      <span className="bg-salvia/20 text-salvia px-2.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider">
+                                        Destacada
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gris/70">
+                                    <span className="font-bold text-terracota">{c.level}</span> • Guiado por {c.instructor} • {c.duration} min
+                                  </p>
+                                  <p className="text-xs text-gris/60 mt-1">
+                                    {format(new Date(c.date), "EEEE d MMMM, HH:mm 'hs'", { locale: es })}
+                                  </p>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedClassForStudents(c);
+                                      setIsStudentListOpen(true);
+                                    }}
+                                    className="text-[10px] font-semibold text-salvia hover:underline mt-2 flex items-center gap-1"
+                                  >
+                                    👤 {bookings[c.id]?.length || 0} / {c.capacity} Reservas
+                                  </button>
                                 </div>
-                                <p className="text-xs text-gris/70">
-                                  <span className="font-bold text-terracota">{c.level}</span> • Guiado por {c.instructor} • {c.duration} min
-                                </p>
-                                <p className="text-xs text-gris/60 mt-1">
-                                  {format(new Date(c.date), "EEEE d MMMM, HH:mm 'hs'", { locale: es })}
-                                </p>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => {
+                                      setClassToEdit(c);
+                                      setIsFormOpen(true);
+                                    }}
+                                    className="rounded-full border border-arena px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-gris hover:bg-arena"
+                                  >
+                                    Editar
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => {
+                                      const duplicate = { ...c, id: undefined } as any;
+                                      setClassToEdit(duplicate);
+                                      setIsFormOpen(true);
+                                    }}
+                                    className="rounded-full border border-arena px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-gris hover:bg-arena"
+                                  >
+                                    Duplicar
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => handleDeleteClass(c.id)}
+                                    className="rounded-full border border-red-200 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-50"
+                                  >
+                                    Eliminar
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  onClick={() => {
-                                    setClassToEdit(c);
-                                    setIsFormOpen(true);
-                                  }}
-                                  className="rounded-full border border-arena px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-gris hover:bg-arena"
-                                >
-                                  Editar
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  onClick={() => {
-                                    const duplicate = { ...c, id: undefined } as any;
-                                    setClassToEdit(duplicate);
-                                    setIsFormOpen(true);
-                                  }}
-                                  className="rounded-full border border-arena px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-gris hover:bg-arena"
-                                >
-                                  Duplicar
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  onClick={() => handleDeleteClass(c.id)}
-                                  className="rounded-full border border-red-200 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-50"
-                                >
-                                  Eliminar
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        ) : (
+                          /* VISTA SEMANAL */
+                          <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 min-w-[600px] overflow-x-auto">
+                            {daysOfWeek.map((day, dIdx) => {
+                              const dayClasses = classes.filter(c => isSameDate(new Date(c.date), day));
+                              return (
+                                <div key={dIdx} className="bg-arena/20 rounded-[24px] p-3 border border-arena/30 flex flex-col min-h-[300px]">
+                                  <div className="text-center border-b border-arena/30 pb-2 mb-3 shrink-0">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-terracota">
+                                      {format(day, 'eee', { locale: es })}
+                                    </p>
+                                    <p className="text-lg font-serif font-bold text-gris">
+                                      {format(day, 'd')}
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="space-y-3 flex-grow flex flex-col justify-start">
+                                    {dayClasses.length > 0 ? (
+                                      dayClasses.map((c) => (
+                                        <div key={c.id} className="bg-white p-3 rounded-2xl border border-arena/10 shadow-sm space-y-1.5 text-[10px]">
+                                          <div className="flex justify-between items-center">
+                                            <span className="font-bold text-salvia">{format(new Date(c.date), 'HH:mm')}</span>
+                                            <span className="text-[7px] font-bold uppercase tracking-wider text-terracota bg-arena px-1.5 py-0.5 rounded-full">{c.level}</span>
+                                          </div>
+                                          <p className="font-serif font-semibold text-gris text-xs line-clamp-1">{c.title}</p>
+                                          <p className="text-[8px] text-gris/50">Con {c.instructor}</p>
+                                          
+                                          <button
+                                            onClick={() => {
+                                              setSelectedClassForStudents(c);
+                                              setIsStudentListOpen(true);
+                                            }}
+                                            className="text-[8px] font-bold text-salvia hover:underline w-full text-left pt-1 border-t border-arena/20"
+                                          >
+                                            👤 {bookings[c.id]?.length || 0}/{c.capacity} Cupos
+                                          </button>
+
+                                          <div className="flex justify-between gap-1 pt-1.5 border-t border-arena/25 text-[8px]">
+                                            <button onClick={() => { setClassToEdit(c); setIsFormOpen(true); }} className="text-gris/70 hover:text-salvia font-semibold uppercase">Edit</button>
+                                            <button onClick={() => { const duplicate = { ...c, id: undefined } as any; setClassToEdit(duplicate); setIsFormOpen(true); }} className="text-gris/70 hover:text-salvia font-semibold uppercase">Clonar</button>
+                                            <button onClick={() => handleDeleteClass(c.id)} className="text-red-500 hover:text-red-700 font-semibold uppercase">X</button>
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <p className="text-[9px] text-gris/30 italic text-center my-auto">Libre</p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )
                       ) : (
                         <div className="text-center py-8 text-gris/60 text-sm">
                           No hay clases creadas. Presiona "Crear Clase" para añadir una.
@@ -555,15 +807,41 @@ export function Dashboard() {
                     <CardTitle className="font-serif text-2xl text-gris">Próximas Reservas</CardTitle>
                   </CardHeader>
                   <CardContent className="px-8 pb-8">
-                    <div className="flex flex-col items-center justify-center rounded-[24px] border-2 border-dashed border-arena bg-marfil/30 p-12 text-center text-gris/60">
-                      <div className="w-16 h-16 rounded-full bg-arena flex items-center justify-center mb-4">
-                        <span className="material-symbols-outlined text-salvia">calendar_month</span>
+                    {studentBookingsLoading ? (
+                      <div className="flex justify-center py-6">
+                        <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
                       </div>
-                      <p className="text-lg">No tienes reservas próximas.</p>
-                      <Button className="mt-6 rounded-full border border-salvia bg-transparent px-8 py-3 text-xs font-bold uppercase tracking-widest text-salvia hover:bg-salvia hover:text-white transition-colors" onClick={() => navigate('/schedule')}>
-                        Explorar Clases
-                      </Button>
-                    </div>
+                    ) : studentBookings.length > 0 ? (
+                      <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                        {studentBookings.map((b) => (
+                          <div key={b.id} className="flex justify-between items-center bg-arena/30 p-4 rounded-2xl border border-arena/20">
+                            <div>
+                              <p className="font-serif text-lg font-semibold text-gris">{b.className}</p>
+                              <p className="text-xs text-gris/60 capitalize mt-0.5">
+                                📅 {format(new Date(b.classDate), "EEEE d MMM, HH:mm 'hs'", { locale: es })}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              onClick={() => handleCancelStudentBooking(b.id)}
+                              className="rounded-full border border-red-200 px-4 py-2 text-xs font-bold uppercase tracking-widest text-red-600 hover:bg-red-50 shadow-sm"
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center rounded-[24px] border-2 border-dashed border-arena bg-marfil/30 p-12 text-center text-gris/60">
+                        <div className="w-16 h-16 rounded-full bg-arena flex items-center justify-center mb-4">
+                          <span className="material-symbols-outlined text-salvia">calendar_month</span>
+                        </div>
+                        <p className="text-lg">No tienes reservas próximas.</p>
+                        <Button className="mt-6 rounded-full border border-salvia bg-transparent px-8 py-3 text-xs font-bold uppercase tracking-widest text-salvia hover:bg-salvia hover:text-white transition-colors" onClick={() => navigate('/schedule')}>
+                          Explorar Clases
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
                 
