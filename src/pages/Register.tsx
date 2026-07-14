@@ -33,7 +33,7 @@ export function Register() {
         unlimitedClasses: false,
         createdAt: new Date().toISOString()
       });
-      navigate('/dashboard');
+      navigate('/');
     } catch (err: any) {
       if (err.code === 'permission-denied' || err.message?.includes('Missing or insufficient permissions')) {
         setError('Error de permisos en Firebase. Asegúrate de configurar las reglas de Firestore para permitir la escritura a los usuarios.');
@@ -49,7 +49,7 @@ export function Register() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err: any) {
       setError(err.message || 'Error con Google Register');
     }
