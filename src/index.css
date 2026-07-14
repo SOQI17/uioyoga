@@ -200,6 +200,15 @@ img[alt="Logo"] {
   filter: none !important;
 }
 
+/* Ocultar barra de desplazamiento para elementos con scroll horizontal suave */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 
 
 

@@ -781,11 +781,11 @@ export function Dashboard() {
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-wrap gap-2 border-b border-arena/30 pb-6 mb-10 text-xs font-bold uppercase tracking-widest"
+            className="flex overflow-x-auto md:flex-wrap flex-nowrap gap-2 border-b border-arena/30 pb-4 md:pb-6 mb-10 text-xs font-bold uppercase tracking-widest no-scrollbar"
           >
             <button
               onClick={() => setActiveTab('classes')}
-              className={`rounded-full px-8 py-3 transition-all ${
+              className={`rounded-full px-6 py-3 transition-all shrink-0 ${
                 activeTab === 'classes' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
               }`}
             >
@@ -793,7 +793,7 @@ export function Dashboard() {
             </button>
             <button
               onClick={() => setActiveTab('retreats')}
-              className={`rounded-full px-8 py-3 transition-all ${
+              className={`rounded-full px-6 py-3 transition-all shrink-0 ${
                 activeTab === 'retreats' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
               }`}
             >
@@ -801,7 +801,7 @@ export function Dashboard() {
             </button>
             <button
               onClick={() => setActiveTab('home')}
-              className={`rounded-full px-8 py-3 transition-all ${
+              className={`rounded-full px-6 py-3 transition-all shrink-0 ${
                 activeTab === 'home' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
               }`}
             >
@@ -809,7 +809,7 @@ export function Dashboard() {
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`rounded-full px-8 py-3 transition-all ${
+              className={`rounded-full px-6 py-3 transition-all shrink-0 ${
                 activeTab === 'users' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
               }`}
             >
@@ -817,7 +817,7 @@ export function Dashboard() {
             </button>
             <button
               onClick={() => setActiveTab('subscriptions')}
-              className={`rounded-full px-8 py-3 transition-all ${
+              className={`rounded-full px-6 py-3 transition-all shrink-0 ${
                 activeTab === 'subscriptions' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
               }`}
             >
