@@ -963,7 +963,7 @@ export function Dashboard() {
                       </div>
 
                       {/* selector de vista */}
-                      <div className="flex items-center justify-between border-t border-arena/30 pt-4 mt-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-arena/30 pt-4 mt-2">
                         <div className="flex gap-2">
                           <button
                             onClick={() => setViewMode('weekly')}
@@ -984,7 +984,7 @@ export function Dashboard() {
                         </div>
 
                         {viewMode === 'weekly' && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
                             <button onClick={handlePrevWeek} className="text-sm font-bold text-gris hover:text-salvia px-2">←</button>
                             <button onClick={handleToday} className="text-[9px] font-bold uppercase tracking-widest text-salvia hover:underline px-2">Hoy</button>
                             <button onClick={handleNextWeek} className="text-sm font-bold text-gris hover:text-salvia px-2">→</button>
@@ -1066,11 +1066,11 @@ export function Dashboard() {
                           </div>
                         ) : (
                           /* VISTA SEMANAL */
-                          <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 min-w-[600px] overflow-x-auto">
+                          <div className="flex overflow-x-auto lg:overflow-x-visible flex-nowrap lg:grid lg:grid-cols-7 gap-4 pb-4 no-scrollbar w-full">
                             {daysOfWeek.map((day, dIdx) => {
                               const dayClasses = classes.filter(c => isSameDate(new Date(c.date), day));
                               return (
-                                <div key={dIdx} className="bg-arena/20 rounded-[24px] p-3 border border-arena/30 flex flex-col min-h-[300px]">
+                                <div key={dIdx} className="bg-arena/20 rounded-[24px] p-3 border border-arena/30 flex flex-col min-h-[300px] w-[260px] lg:w-auto shrink-0">
                                   <div className="text-center border-b border-arena/30 pb-2 mb-3 shrink-0">
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-terracota">
                                       {format(day, 'eee', { locale: es })}
