@@ -12,13 +12,18 @@ export function Navbar() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('');
+  const [brandName, setBrandName] = useState<string>('UIO YOGA');
 
   useEffect(() => {
     async function loadLogo() {
       try {
         const docSnap = await getDoc(doc(db, 'settings', 'home'));
         if (docSnap.exists()) {
-          setLogoUrl(docSnap.data().teaserImage || '');
+          const data = docSnap.data();
+          setLogoUrl(data.teaserImage || '');
+          if (data.splashTitle) {
+            setBrandName(data.splashTitle);
+          }
         }
       } catch (err) {
         console.error("Error loading logo in Navbar:", err);
@@ -34,6 +39,9 @@ export function Navbar() {
     { name: 'Retiros', path: '/retreats' },
   ];
 
+  const firstWord = brandName.split(' ')[0];
+  const restOfName = brandName.split(' ').slice(1).join(' ');
+
   return (
     <nav className="sticky top-0 z-50 w-full shrink-0 border-b border-arena bg-marfil">
       <div className="flex h-20 items-center justify-between px-4 md:px-12">
@@ -47,8 +55,8 @@ export function Navbar() {
               <div className="h-4 w-4 rounded-full border-2 border-white"></div>
             </div>
           )}
-          <span className="font-serif text-2xl font-semibold tracking-tight text-gris">
-            UIO <span className="font-light opacity-60">YOGA</span>
+          <span className="font-serif text-2xl font-semibold tracking-tight text-gris uppercase">
+            {firstWord} {restOfName && <span className="font-light opacity-60">{restOfName}</span>}
           </span>
         </Link>
         
