@@ -52,7 +52,7 @@ export function Experience() {
           transition={{ delay: 0.1 }}
           className="font-serif text-5xl md:text-7xl text-marfil font-medium mb-4 tracking-tight"
         >
-          Kukut Room
+          UIO Room
         </motion.h1>
         <motion.p 
           initial={{ opacity: 0 }}

@@ -20,13 +20,13 @@ interface YogaClass {
 
 const DEFAULT_SETTINGS = {
   heroTitle: 'Respira, conecta y transforma',
-  heroSubtitle: 'Una experiencia de bienestar integral diseñada para elevar tu energía y encontrar la calma en el centro de tu ser. Bienvenidos a la comunidad Kukut.',
+  heroSubtitle: 'Una experiencia de bienestar integral diseñada para elevar tu energía y encontrar la calma en el centro de tu ser. Bienvenidos a la comunidad UIO.',
   heroImage: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1840&auto=format&fit=crop',
   philosophyTitle: 'Nuestra Filosofía',
-  philosophyText: 'En Kukut Yoga, creemos que el verdadero bienestar nace de la perfecta armonía entre el cuerpo, la mente y el entorno. Hemos creado un santuario digital y físico donde el diseño minimalista se encuentra con prácticas milenarias.\n\nNuestra misión es acompañarte en tu viaje hacia el equilibrio interior, ofreciéndote herramientas y espacios que inspiran calma y elegancia.',
+  philosophyText: 'En UIO Yoga, creemos que el verdadero bienestar nace de la perfecta armonía entre el cuerpo, la mente y el entorno. Hemos creado un santuario digital y físico donde el diseño minimalista se encuentra con prácticas milenarias.\n\nNuestra misión es acompañarte en tu viaje hacia el equilibrio interior, ofreciéndote herramientas y espacios que inspiran calma y elegancia.',
   philosophyImage: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1840&auto=format&fit=crop',
   teaserImage: '',
-  splashTitle: 'KUKUT YOGA',
+  splashTitle: 'UIO YOGA',
   splashSubtitle: 'Vive la experiencia',
   splashImage: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop'
 };
@@ -37,11 +37,11 @@ export function Home() {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [showSplash, setShowSplash] = useState(() => {
     // Check if splash was shown in the current page load session
-    return !(window as any).__kukut_splash_shown;
+    return !(window as any).__uioyoga_splash_shown;
   });
 
   const handleDismissSplash = () => {
-    (window as any).__kukut_splash_shown = true;
+    (window as any).__uioyoga_splash_shown = true;
     setShowSplash(false);
   };
 
@@ -111,7 +111,7 @@ export function Home() {
             transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
             className="font-serif text-5xl md:text-7xl font-bold tracking-tight text-white mb-4 uppercase drop-shadow-md"
           >
-            {settings.splashTitle || 'KUKUT YOGA'}
+            {settings.splashTitle || 'UIO YOGA'}
           </motion.h1>
 
           <motion.p
@@ -192,9 +192,9 @@ export function Home() {
               <Link to="/experience" className="group relative h-64 w-64 hover:scale-105 transition-transform duration-500 flex items-center justify-center">
                  {settings.teaserImage ? (
                    <div className="relative h-full w-full rounded-full overflow-hidden border-[6px] border-salvia/50 shadow-xl">
-                     <img src={settings.teaserImage} alt="Kukut Room Teaser" className="w-full h-full object-cover opacity-85" />
+                     <img src={settings.teaserImage} alt="UIO Room Teaser" className="w-full h-full object-cover opacity-85" />
                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                       <span className="font-serif italic text-white text-lg drop-shadow-md">Kukut Room</span>
+                       <span className="font-serif italic text-white text-lg drop-shadow-md">UIO Room</span>
                      </div>
                    </div>
                  ) : (
@@ -202,7 +202,7 @@ export function Home() {
                      <div className="absolute inset-0 rounded-full border-2 border-salvia/40 animate-pulse group-hover:border-salvia"></div>
                      <div className="absolute inset-8 rounded-full border-2 border-terracota/60 group-hover:border-terracota"></div>
                      <div className="absolute inset-0 flex items-center justify-center bg-marfil/10 rounded-full backdrop-blur-[2px]">
-                       <span className="font-serif italic text-white text-lg drop-shadow-md">Kukut Room</span>
+                       <span className="font-serif italic text-white text-lg drop-shadow-md">UIO Room</span>
                      </div>
                    </>
                  )}
@@ -257,7 +257,7 @@ export function Home() {
             >
               <img
                 src={settings.philosophyImage}
-                alt="Filosofía Kukut"
+                alt="Filosofía UIO"
                 className="h-full w-full object-cover transition-transform duration-1000 hover:scale-105"
               />
             </motion.div>

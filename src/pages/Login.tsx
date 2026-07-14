@@ -59,7 +59,7 @@ export function Login() {
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-bl-full pointer-events-none"></div>
         
         <div className="mb-10 text-center relative z-10">
-          <span className="mb-2 block text-[10px] font-bold tracking-[0.3em] uppercase text-terracota">Kukut Yoga</span>
+          <span className="mb-2 block text-[10px] font-bold tracking-[0.3em] uppercase text-terracota">UIO Yoga</span>
           <h1 className="mb-3 font-serif text-4xl font-medium text-gris">Bienvenido</h1>
           <p className="text-sm text-gris/70">Ingresa a tu espacio de bienestar</p>
         </div>

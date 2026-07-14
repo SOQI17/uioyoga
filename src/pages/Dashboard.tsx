@@ -901,7 +901,7 @@ export function Dashboard() {
                         Suscripción Inactiva
                       </p>
                       <p className="text-xs text-gris/60 leading-relaxed">
-                        Tu pase mensual no está activo. Ponte en contacto con el instructor o administrador de Kukut Yoga para registrar tu pago e iniciar tus clases.
+                        Tu pase mensual no está activo. Ponte en contacto con el instructor o administrador de UIO Yoga para registrar tu pago e iniciar tus clases.
                       </p>
                     </div>
                   )}

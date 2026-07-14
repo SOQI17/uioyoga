@@ -31,7 +31,7 @@ export function About() {
             transition={{ delay: 0.3 }}
             className="text-lg md:text-xl text-gris/70 leading-relaxed font-light"
           >
-            Kukut Yoga nació del deseo de crear un espacio donde la práctica física se encuentra con el crecimiento espiritual,
+            UIO Yoga nació del deseo de crear un espacio donde la práctica física se encuentra con el crecimiento espiritual,
             en un ambiente diseñado para inspirar calma, elegancia y conexión profunda.
           </motion.p>
         </div>
@@ -63,10 +63,10 @@ export function About() {
             
             <div className="space-y-6 text-gris/70 leading-relaxed font-light text-lg">
               <p>
-                Fundada en 2024, Kukut Yoga comenzó como un pequeño grupo de practicantes buscando algo más que una clase de fitness. Buscábamos una comunidad.
+                Fundada en 2024, UIO Yoga comenzó como un pequeño grupo de practicantes buscando algo más que una clase de fitness. Buscábamos una comunidad.
               </p>
               <p>
-                El nombre "Kukut" representa el despertar de la consciencia y la transformación continua que experimentamos sobre el mat. Nuestra arquitectura y diseño están pensados para eliminar distracciones y enfocarnos en el ser.
+                El nombre "UIO" representa el despertar de la consciencia y la transformación continua que experimentamos sobre el mat. Nuestra arquitectura y diseño están pensados para eliminar distracciones y enfocarnos en el ser.
               </p>
             </div>
 

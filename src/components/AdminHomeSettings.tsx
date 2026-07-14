@@ -8,13 +8,13 @@ import { motion } from 'framer-motion';
 
 const DEFAULT_SETTINGS = {
   heroTitle: 'Respira, conecta y transforma',
-  heroSubtitle: 'Una experiencia de bienestar integral diseñada para elevar tu energía y encontrar la calma en el centro de tu ser. Bienvenidos a la comunidad Kukut.',
+  heroSubtitle: 'Una experiencia de bienestar integral diseñada para elevar tu energía y encontrar la calma en el centro de tu ser. Bienvenidos a la comunidad UIO.',
   heroImage: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1840&auto=format&fit=crop',
   philosophyTitle: 'Nuestra Filosofía',
-  philosophyText: 'En Kukut Yoga, creemos que el verdadero bienestar nace de la perfecta armonía entre el cuerpo, la mente y el entorno. Hemos creado un santuario digital y físico donde el diseño minimalista se encuentra con prácticas milenarias.\n\nNuestra misión es acompañarte en tu viaje hacia el equilibrio interior, ofreciéndote herramientas y espacios que inspiran calma y elegancia.',
+  philosophyText: 'En UIO Yoga, creemos que el verdadero bienestar nace de la perfecta armonía entre el cuerpo, la mente y el entorno. Hemos creado un santuario digital y físico donde el diseño minimalista se encuentra con prácticas milenarias.\n\nNuestra misión es acompañarte en tu viaje hacia el equilibrio interior, ofreciéndote herramientas y espacios que inspiran calma y elegancia.',
   philosophyImage: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1840&auto=format&fit=crop',
   teaserImage: '',
-  splashTitle: 'KUKUT YOGA',
+  splashTitle: 'UIO YOGA',
   splashSubtitle: 'Vive la experiencia',
   splashImage: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop'
 };
@@ -256,7 +256,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
 
           {/* TEASER IMAGE (CENTRAL ORB) Uploader */}
           <div className="space-y-1">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Foto de Reemplazo para el Círculo Central ("Kukut Room")</Label>
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Foto de Reemplazo para el Círculo Central ("UIO Room")</Label>
             <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/50 p-4 rounded-2xl border border-arena/30">
               {teaserImage && (
                 <img src={teaserImage} alt="Teaser Preview" className="w-16 h-16 rounded-full object-cover shadow-sm border border-arena bg-arena" />
@@ -306,7 +306,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
               value={philosophyText}
               onChange={(e) => setPhilosophyText(e.target.value)}
               className="flex w-full rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia focus:outline-none"
-              placeholder="Escribe la filosofía de Kukut Yoga..."
+              placeholder="Escribe la filosofía de UIO Yoga..."
             />
           </div>
 
@@ -349,7 +349,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
               value={splashTitle}
               onChange={(e) => setSplashTitle(e.target.value)}
               className="flex w-full rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia focus:outline-none"
-              placeholder="Ej. KUKUT YOGA"
+              placeholder="Ej. UIO YOGA"
             />
           </div>
 

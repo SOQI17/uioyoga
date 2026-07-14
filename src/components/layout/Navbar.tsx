@@ -48,7 +48,7 @@ export function Navbar() {
             </div>
           )}
           <span className="font-serif text-2xl font-semibold tracking-tight text-gris">
-            KUKUT <span className="font-light opacity-60">YOGA</span>
+            UIO <span className="font-light opacity-60">YOGA</span>
           </span>
         </Link>
         

@@ -169,9 +169,9 @@ img.object-cover:hover {
 
 /* El banner de inicio (Hero Image), filosofía e imágenes de primer plano deben mostrarse con alta visibilidad de la imagen subida */
 img[alt="Yoga Background"],
-img[alt="Filosofía Kukut"],
+img[alt="Filosofía UIO"],
 img[alt="Splash Welcome Background"],
-img[alt="Kukut Room Teaser"],
+img[alt="UIO Room Teaser"],
 img[alt="Logo"],
 section img {
   opacity: 0.85 !important; /* 85% para ver perfectamente el fondo subido por el usuario */
@@ -179,8 +179,8 @@ section img {
   filter: brightness(80%) contrast(105%) !important; /* Ligero oscurecimiento para mantener legibilidad del texto blanco */
 }
 
-/* El círculo central ("Kukut Room") debe verse normal, sin mezcla multiply */
-img[alt="Kukut Room Teaser"] {
+/* El círculo central ("UIO Room") debe verse normal, sin mezcla multiply */
+img[alt="UIO Room Teaser"] {
   opacity: 0.95 !important;
   mix-blend-mode: normal !important;
   filter: none !important;

@@ -71,9 +71,9 @@ export function Schedule() {
     const icsContent = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//Kukut Yoga//Schedule//ES",
+      "PRODID:-//UIO Yoga//Schedule//ES",
       "BEGIN:VEVENT",
-      `UID:${c.id}@kukutyoga.com`,
+      `UID:${c.id}@uioyoga.com`,
       `DTSTAMP:${toIcsString(new Date())}`,
       `DTSTART:${toIcsString(startDate)}`,
       `DTEND:${toIcsString(endDate)}`,

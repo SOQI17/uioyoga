@@ -4,12 +4,12 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD2pnzmtlcZRo9-sLsOS-s11kndd_Hp85M",
-  authDomain: "kukutyoga-96c6b.firebaseapp.com",
-  projectId: "kukutyoga-96c6b",
-  storageBucket: "kukutyoga-96c6b.firebasestorage.app",
-  messagingSenderId: "185996047683",
-  appId: "1:185996047683:web:7ced31b24f754ca0606bf6"
+  apiKey: "AIzaSyA3Y1ihrZ2TvAomDKcW7unMdz4StBigTI4",
+  authDomain: "uioyoga.firebaseapp.com",
+  projectId: "uioyoga",
+  storageBucket: "uioyoga.firebasestorage.app",
+  messagingSenderId: "371534214675",
+  appId: "1:371534214675:web:081808ac67284ae33171e6"
 };
 
 // Initialize Firebase
