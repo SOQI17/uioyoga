@@ -33,6 +33,7 @@ const DEFAULT_SETTINGS = {
 export function Home() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [featuredClasses, setFeaturedClasses] = useState<YogaClass[]>([]);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const [showSplash, setShowSplash] = useState(() => {
     // Check if splash was shown in the current page load session
     return !(window as any).__kukut_splash_shown;
@@ -64,10 +65,20 @@ export function Home() {
         }
       } catch (err) {
         console.error("Error loading home page data:", err);
+      } finally {
+        setLoadingSettings(false);
       }
     }
     loadData();
   }, []);
+
+  if (loadingSettings) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
+        <div className="h-10 w-10 animate-spin rounded-full border-t-2 border-b-2 border-salvia"></div>
+      </div>
+    );
+  }
 
   if (showSplash) {
     return (

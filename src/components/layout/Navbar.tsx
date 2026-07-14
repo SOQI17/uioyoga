@@ -1,14 +1,31 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../ui/Button';
 import { Menu, X, User } from 'lucide-react';
-import { useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 export function Navbar() {
   const { user, userData } = useAuthStore();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string>('');
+
+  useEffect(() => {
+    async function loadLogo() {
+      try {
+        const docSnap = await getDoc(doc(db, 'settings', 'home'));
+        if (docSnap.exists()) {
+          setLogoUrl(docSnap.data().teaserImage || '');
+        }
+      } catch (err) {
+        console.error("Error loading logo in Navbar:", err);
+      }
+    }
+    loadLogo();
+  }, []);
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -21,9 +38,15 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full shrink-0 border-b border-arena bg-marfil">
       <div className="flex h-20 items-center justify-between px-4 md:px-12">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-salvia">
-            <div className="h-4 w-4 rounded-full border-2 border-white"></div>
-          </div>
+          {logoUrl ? (
+            <div className="h-8 w-8 overflow-hidden rounded-full border border-salvia/40 shrink-0 shadow-sm bg-arena">
+              <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
+            </div>
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-salvia shrink-0">
+              <div className="h-4 w-4 rounded-full border-2 border-white"></div>
+            </div>
+          )}
           <span className="font-serif text-2xl font-semibold tracking-tight text-gris">
             KUKUT <span className="font-light opacity-60">YOGA</span>
           </span>
