@@ -21,7 +21,7 @@ interface YogaClass {
 const DEFAULT_SETTINGS = {
   heroTitle: 'Respira, conecta y transforma',
   heroSubtitle: 'Una experiencia de bienestar integral diseñada para elevar tu energía y encontrar la calma en el centro de tu ser. Bienvenidos a la comunidad Kukut.',
-  heroImage: 'https://images.unsplash.com/photo-1599901860904-17e08c3a4cb1?q=80&w=2070&auto=format&fit=crop',
+  heroImage: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1840&auto=format&fit=crop',
   philosophyTitle: 'Nuestra Filosofía',
   philosophyText: 'En Kukut Yoga, creemos que el verdadero bienestar nace de la perfecta armonía entre el cuerpo, la mente y el entorno. Hemos creado un santuario digital y físico donde el diseño minimalista se encuentra con prácticas milenarias.\n\nNuestra misión es acompañarte en tu viaje hacia el equilibrio interior, ofreciéndote herramientas y espacios que inspiran calma y elegancia.',
   philosophyImage: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1840&auto=format&fit=crop',
