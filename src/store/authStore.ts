@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
+import { auth, db, getTenantId } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export interface UserData {
@@ -9,6 +9,7 @@ export interface UserData {
   email: string;
   phone?: string;
   role: 'admin' | 'instructor' | 'student';
+  tenantId?: string;
   membershipId?: string;
   subscriptionActive?: boolean;
   classesRemaining?: number;
@@ -46,6 +47,23 @@ export const useAuthStore = create<AuthState>((set) => ({
           if (userDoc.exists()) {
             const data = userDoc.data() as UserData;
             
+            // Tenant restriction for non-admins
+            if (!isAdmin && data.tenantId && data.tenantId !== getTenantId()) {
+              console.warn("User belongs to a different tenant. Signing out...");
+              await auth.signOut();
+              set({ user: null, userData: null });
+              return;
+            }
+            
+            if (!data.tenantId) {
+              data.tenantId = getTenantId();
+              try {
+                await setDoc(doc(db, 'users', user.uid), { tenantId: getTenantId() }, { merge: true });
+              } catch (writeErr) {
+                console.warn("Could not save tenantId to user doc:", writeErr);
+              }
+            }
+            
             // Auto-demote alexisguerra9577@gmail.com if they got admin role by mistake
             if (data.email?.toLowerCase() === 'alexisguerra9577@gmail.com' && data.role === 'admin') {
               data.role = 'student';
@@ -75,6 +93,7 @@ export const useAuthStore = create<AuthState>((set) => ({
               subscriptionActive: false,
               classesRemaining: 0,
               unlimitedClasses: false,
+              tenantId: getTenantId(),
             };
             set({ userData: fallbackUserData });
 

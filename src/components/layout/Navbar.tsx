@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Button } from '../ui/Button';
 import { Menu, X, User } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { db, getTenantId } from '../../lib/firebase';
 
 export function Navbar() {
   const { user, userData } = useAuthStore();
@@ -17,7 +17,7 @@ export function Navbar() {
   useEffect(() => {
     async function loadLogo() {
       try {
-        const docSnap = await getDoc(doc(db, 'settings', 'home'));
+        const docSnap = await getDoc(doc(db, 'settings', getTenantId()));
         if (docSnap.exists()) {
           const data = docSnap.data();
           setLogoUrl(data.teaserImage || '');

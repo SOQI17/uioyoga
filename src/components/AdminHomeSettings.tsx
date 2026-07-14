@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, getTenantId } from '../lib/firebase';
 import { uploadToCloudinary } from '../lib/cloudinary';
 import { Button } from './ui/Button';
 import { Label } from './ui/Label';
@@ -47,7 +47,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const docRef = doc(db, 'settings', 'home');
+        const docRef = doc(db, 'settings', getTenantId());
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -166,7 +166,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
     };
 
     try {
-      await setDoc(doc(db, 'settings', 'home'), settingsData);
+      await setDoc(doc(db, 'settings', getTenantId()), settingsData);
       alert("¡Ajustes de inicio guardados correctamente!");
       onSuccess();
     } catch (err: any) {

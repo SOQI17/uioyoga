@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { doc, updateDoc, addDoc, collection } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, getTenantId } from '../lib/firebase';
 import { uploadToCloudinary } from '../lib/cloudinary';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -102,6 +102,7 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
       duration: Number(duration),
       featured,
       image,
+      tenantId: getTenantId(),
     };
 
     try {

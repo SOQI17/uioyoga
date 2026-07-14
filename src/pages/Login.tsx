@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { auth, db, getTenantId } from '../lib/firebase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
@@ -22,6 +22,18 @@ export function Login() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      
+      const isAdmin = userCredential.user.email?.toLowerCase() === 'suqisam@gmail.com';
+      if (userDoc.exists()) {
+        const uData = userDoc.data();
+        if (!isAdmin && uData.tenantId && uData.tenantId !== getTenantId()) {
+          await auth.signOut();
+          setError('Tu cuenta pertenece a otro estudio de yoga.');
+          setLoading(false);
+          return;
+        }
+      }
+
       if (userDoc.exists() && userDoc.data().role === 'admin') {
         navigate('/dashboard');
       } else {
@@ -39,6 +51,17 @@ export function Login() {
     try {
       const userCredential = await signInWithPopup(auth, provider);
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      
+      const isAdmin = userCredential.user.email?.toLowerCase() === 'suqisam@gmail.com';
+      if (userDoc.exists()) {
+        const uData = userDoc.data();
+        if (!isAdmin && uData.tenantId && uData.tenantId !== getTenantId()) {
+          await auth.signOut();
+          setError('Tu cuenta pertenece a otro estudio de yoga.');
+          return;
+        }
+      }
+
       if (userDoc.exists() && userDoc.data().role === 'admin') {
         navigate('/dashboard');
       } else {

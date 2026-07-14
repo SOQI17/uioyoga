@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, deleteDoc, doc, addDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { collection, getDocs, query, orderBy, deleteDoc, doc, addDoc, getDoc, updateDoc, where } from 'firebase/firestore';
+import { db, getTenantId } from '../lib/firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '../components/ui/Button';
@@ -98,12 +98,12 @@ export function Schedule() {
       setErrorMsg(null);
       
       // 1. Fetch classes
-      const q = query(collection(db, 'classes'), orderBy('date'));
+      const q = query(collection(db, 'classes'), where('tenantId', '==', getTenantId()), orderBy('date'));
       const snapshot = await getDocs(q);
       const fetchedClasses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as YogaClass));
       
       // 2. Fetch bookings
-      const bookingsSnap = await getDocs(collection(db, 'bookings'));
+      const bookingsSnap = await getDocs(query(collection(db, 'bookings'), where('tenantId', '==', getTenantId())));
       const bookingsMap: Record<string, any[]> = {};
       const userBooked = new Set<string>();
 
@@ -202,6 +202,7 @@ export function Schedule() {
         userId: user.uid,
         userName: uData.name || user.displayName || 'Alumno',
         userEmail: user.email || '',
+        tenantId: getTenantId(),
         bookedAt: new Date().toISOString()
       };
 

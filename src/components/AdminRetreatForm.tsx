@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, getTenantId } from '../lib/firebase';
 import { uploadToCloudinary } from '../lib/cloudinary';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -80,6 +80,7 @@ export function AdminRetreatForm({ retreatToEdit, onSuccess, onCancel }: AdminRe
       price,
       image: image || 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?q=80&w=2070',
       description,
+      tenantId: getTenantId(),
     };
 
     try {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { auth, db, getTenantId } from '../lib/firebase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
@@ -31,6 +31,7 @@ export function Register() {
         subscriptionActive: false,
         classesRemaining: 0,
         unlimitedClasses: false,
+        tenantId: getTenantId(),
         createdAt: new Date().toISOString()
       });
       navigate('/');

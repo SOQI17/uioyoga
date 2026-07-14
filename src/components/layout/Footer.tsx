@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, limit } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { db, getTenantId } from '../../lib/firebase';
 
 interface FeaturedClass {
   id: string;
@@ -26,20 +26,20 @@ export function Footer() {
     async function loadFooterData() {
       try {
         // Load featured classes (up to 2)
-        const qClasses = query(collection(db, 'classes'), where('featured', '==', true), limit(2));
+        const qClasses = query(collection(db, 'classes'), where('tenantId', '==', getTenantId()), where('featured', '==', true), limit(2));
         const classesSnap = await getDocs(qClasses);
         let fetchedClasses: FeaturedClass[] = [];
         if (!classesSnap.empty) {
           fetchedClasses = classesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FeaturedClass));
         } else {
           // Fallback to any 2 classes
-          const fallbackSnap = await getDocs(query(collection(db, 'classes'), limit(2)));
+          const fallbackSnap = await getDocs(query(collection(db, 'classes'), where('tenantId', '==', getTenantId()), limit(2)));
           fetchedClasses = fallbackSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FeaturedClass));
         }
         setFeaturedClasses(fetchedClasses);
 
         // Load next retreat (limit 1)
-        const qRetreats = query(collection(db, 'retreats'), limit(1));
+        const qRetreats = query(collection(db, 'retreats'), where('tenantId', '==', getTenantId()), limit(1));
         const retreatsSnap = await getDocs(qRetreats);
         if (!retreatsSnap.empty) {
           const r = retreatsSnap.docs[0];

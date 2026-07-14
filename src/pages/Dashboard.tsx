@@ -1,6 +1,6 @@
 import { useAuthStore, UserData } from '../store/authStore';
 import { signOut } from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
+import { auth, db, getTenantId } from '../lib/firebase';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Label } from '../components/ui/Label';
@@ -96,13 +96,13 @@ export function Dashboard() {
     setAdminLoading(true);
     try {
       // 1. Fetch classes
-      const q = query(collection(db, 'classes'), orderBy('date'));
+      const q = query(collection(db, 'classes'), where('tenantId', '==', getTenantId()), orderBy('date'));
       const snapshot = await getDocs(q);
       const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as YogaClass));
       setClasses(fetched);
 
       // 2. Fetch bookings
-      const bookingsSnap = await getDocs(collection(db, 'bookings'));
+      const bookingsSnap = await getDocs(query(collection(db, 'bookings'), where('tenantId', '==', getTenantId())));
       const bookingsMap: Record<string, any[]> = {};
       bookingsSnap.docs.forEach((d) => {
         const data = d.data();
@@ -123,7 +123,7 @@ export function Dashboard() {
     if (!user || userData?.role === 'admin') return;
     setStudentBookingsLoading(true);
     try {
-      const q = query(collection(db, 'bookings'), where('userId', '==', user.uid));
+      const q = query(collection(db, 'bookings'), where('tenantId', '==', getTenantId()), where('userId', '==', user.uid));
       const snap = await getDocs(q);
       const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setStudentBookings(fetched);
@@ -200,7 +200,7 @@ export function Dashboard() {
     if (!userData || userData.role !== 'admin') return;
     setRetreatsLoading(true);
     try {
-      const snapshot = await getDocs(collection(db, 'retreats'));
+      const snapshot = await getDocs(query(collection(db, 'retreats'), where('tenantId', '==', getTenantId())));
       const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Retreat));
       setRetreats(fetched);
     } catch (err) {
@@ -214,7 +214,7 @@ export function Dashboard() {
     if (!userData || userData.role !== 'admin') return;
     setUsersLoading(true);
     try {
-      const snapshot = await getDocs(collection(db, 'users'));
+      const snapshot = await getDocs(query(collection(db, 'users'), where('tenantId', '==', getTenantId())));
       const fetched = snapshot.docs.map(doc => doc.data() as UserData);
       setUsers(fetched);
     } catch (err) {
@@ -343,6 +343,7 @@ export function Dashboard() {
         userName: selectedUserForPayment.name || 'Alumno',
         amount: Number(paymentAmount) || 0,
         planType: planType,
+        tenantId: getTenantId(),
         date: new Date().toISOString(),
         expiryDate: new Date(paymentExpiry).toISOString()
       });
@@ -364,6 +365,7 @@ export function Dashboard() {
     try {
       const q = query(
         collection(db, 'payments'),
+        where('tenantId', '==', getTenantId()),
         where('userId', '==', studentId),
         orderBy('date', 'desc')
       );

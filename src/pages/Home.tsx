@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, limit, doc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, getTenantId } from '../lib/firebase';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Link } from 'react-router-dom';
@@ -49,19 +49,19 @@ export function Home() {
     async function loadData() {
       try {
         // Load custom homepage settings
-        const settingsSnap = await getDoc(doc(db, 'settings', 'home'));
+        const settingsSnap = await getDoc(doc(db, 'settings', getTenantId()));
         if (settingsSnap.exists()) {
           setSettings({ ...DEFAULT_SETTINGS, ...settingsSnap.data() });
         }
 
         // Load featured classes (up to 3)
-        const q = query(collection(db, 'classes'), where('featured', '==', true), limit(3));
+        const q = query(collection(db, 'classes'), where('tenantId', '==', getTenantId()), where('featured', '==', true), limit(3));
         const classesSnap = await getDocs(q);
         if (!classesSnap.empty) {
           setFeaturedClasses(classesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as YogaClass)));
         } else {
           // Fallback to top 3 upcoming classes if no featured flag is present
-          const fallbackSnap = await getDocs(query(collection(db, 'classes'), limit(3)));
+          const fallbackSnap = await getDocs(query(collection(db, 'classes'), where('tenantId', '==', getTenantId()), limit(3)));
           setFeaturedClasses(fallbackSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as YogaClass)));
         }
       } catch (err) {

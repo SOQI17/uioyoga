@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { collection, getDocs, addDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { db, getTenantId } from '../lib/firebase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { motion } from 'framer-motion';
@@ -45,12 +45,16 @@ export function Retreats() {
 
   const fetchRetreats = async () => {
     try {
-      const snapshot = await getDocs(collection(db, 'retreats'));
+      const q = query(collection(db, 'retreats'), where('tenantId', '==', getTenantId()));
+      const snapshot = await getDocs(q);
       if (snapshot.empty) {
         // Seed default retreats
         const seeded: Retreat[] = [];
         for (const r of DEFAULT_RETREATS) {
-          const docRef = await addDoc(collection(db, 'retreats'), r);
+          const docRef = await addDoc(collection(db, 'retreats'), {
+            ...r,
+            tenantId: getTenantId()
+          });
           seeded.push({ id: docRef.id, ...r });
         }
         setRetreats(seeded);
