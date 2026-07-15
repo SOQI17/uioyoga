@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -19,11 +19,20 @@ export const getTenantId = (): string => {
   const searchParams = new URLSearchParams(window.location.search);
   const queryTenant = searchParams.get('tenant');
   if (queryTenant) {
-    localStorage.setItem('uio_tenant_override', queryTenant);
+    try {
+      localStorage.setItem('uio_tenant_override', queryTenant);
+    } catch (e) {
+      console.warn("localStorage is disabled or restricted:", e);
+    }
     return queryTenant.toLowerCase();
   }
   
-  const savedTenant = localStorage.getItem('uio_tenant_override');
+  let savedTenant = null;
+  try {
+    savedTenant = localStorage.getItem('uio_tenant_override');
+  } catch (e) {
+    console.warn("localStorage is disabled or restricted:", e);
+  }
   if (savedTenant && (host.includes('localhost') || host.includes('127.0.0.1'))) {
     return savedTenant.toLowerCase();
   }
@@ -40,5 +49,7 @@ export const getTenantId = (): string => {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = initializeFirestore(app, {
+  databaseId: 'uioyoga'
+});
 export const storage = getStorage(app);

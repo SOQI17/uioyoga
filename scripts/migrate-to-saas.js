@@ -9,7 +9,7 @@
  */
 
 const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const fs = require('fs');
 const path = require('path');
 
@@ -28,7 +28,7 @@ if (fs.existsSync(SERVICE_ACCOUNT_PATH)) {
   });
 }
 
-const db = getFirestore();
+const db = getFirestore('uioyoga');
 
 async function runMigration() {
   console.log('Iniciando migración a base de datos multi-tenant...');
@@ -81,7 +81,7 @@ async function runMigration() {
         if (data.email?.toLowerCase() === 'suqisam@gmail.com') {
           batch.update(doc.ref, {
             role: 'superadmin',
-            studioId: admin.firestore.FieldValue.delete() // Los superadmins no pertenecen a un estudio
+            studioId: FieldValue.delete() // Los superadmins no pertenecen a un estudio
           });
           console.log(`✓ Usuario ${data.email} promovido a superadmin.`);
         } else {
