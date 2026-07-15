@@ -34,8 +34,15 @@ export function Login() {
         }
       }
 
-      if (userDoc.exists() && userDoc.data().role === 'admin') {
-        navigate('/dashboard');
+      if (userDoc.exists()) {
+        const role = userDoc.data().role;
+        if (role === 'superadmin') {
+          navigate('/admin');
+        } else if (role === 'admin' || role === 'instructor') {
+          navigate('/dashboard');
+        } else {
+          navigate('/');
+        }
       } else {
         navigate('/');
       }
@@ -62,8 +69,15 @@ export function Login() {
         }
       }
 
-      if (userDoc.exists() && userDoc.data().role === 'admin') {
-        navigate('/dashboard');
+      if (userDoc.exists()) {
+        const role = userDoc.data().role;
+        if (role === 'superadmin') {
+          navigate('/admin');
+        } else if (role === 'admin' || role === 'instructor') {
+          navigate('/dashboard');
+        } else {
+          navigate('/');
+        }
       } else {
         navigate('/');
       }
