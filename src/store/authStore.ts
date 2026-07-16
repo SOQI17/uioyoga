@@ -42,20 +42,31 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (user) {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const isAdmin = user.email?.toLowerCase() === 'suqisam@gmail.com';
+          const isSuperAdminEmail = user.email?.toLowerCase() === 'suqisam@gmail.com';
           
           if (userDoc.exists()) {
             const data = userDoc.data() as UserData;
             
-            // Tenant restriction for non-admins
-            if (!isAdmin && data.tenantId && data.tenantId !== getTenantId()) {
+            // Auto-upgrade suqisam@gmail.com to superadmin if they don't have it
+            if (isSuperAdminEmail && data.role !== 'superadmin') {
+              data.role = 'superadmin';
+              delete data.tenantId;
+              try {
+                await setDoc(doc(db, 'users', user.uid), { role: 'superadmin', tenantId: null }, { merge: true });
+              } catch (writeErr) {
+                console.warn("Could not upgrade user role to superadmin in Firestore:", writeErr);
+              }
+            }
+
+            // Tenant restriction for non-superadmins
+            if (data.role !== 'superadmin' && data.tenantId && data.tenantId !== getTenantId()) {
               console.warn("User belongs to a different tenant. Signing out...");
               await auth.signOut();
               set({ user: null, userData: null });
               return;
             }
             
-            if (!data.tenantId) {
+            if (data.role !== 'superadmin' && !data.tenantId) {
               data.tenantId = getTenantId();
               try {
                 await setDoc(doc(db, 'users', user.uid), { tenantId: getTenantId() }, { merge: true });
@@ -74,14 +85,6 @@ export const useAuthStore = create<AuthState>((set) => ({
               }
             }
 
-            if (isAdmin && data.role !== 'admin') {
-              data.role = 'admin';
-              try {
-                await setDoc(doc(db, 'users', user.uid), { role: 'admin' }, { merge: true });
-              } catch (writeErr) {
-                console.warn("Could not upgrade user role to admin in Firestore:", writeErr);
-              }
-            }
             set({ userData: data });
           } else {
             // User exists in Firebase Auth but has no document in Firestore (e.g., Google login first time)
@@ -89,11 +92,11 @@ export const useAuthStore = create<AuthState>((set) => ({
               uid: user.uid,
               name: user.displayName || user.email?.split('@')[0] || 'Usuario',
               email: user.email || '',
-              role: isAdmin ? 'admin' : 'student',
+              role: isSuperAdminEmail ? 'superadmin' : 'student',
               subscriptionActive: false,
               classesRemaining: 0,
               unlimitedClasses: false,
-              tenantId: getTenantId(),
+              tenantId: isSuperAdminEmail ? undefined : getTenantId(),
             };
             set({ userData: fallbackUserData });
 
