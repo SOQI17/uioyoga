@@ -37,7 +37,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   // 4. Verify user belongs to the current tenant / subdomain
-  if (userData.studioId !== tenantId) {
+  if (userData.tenantId !== tenantId) {
     console.warn("Unauthorized access: User belongs to a different tenant.");
     return <Navigate to="/login" replace />;
   }

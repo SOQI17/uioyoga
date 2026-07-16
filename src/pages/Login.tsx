@@ -48,10 +48,8 @@ export function Login() {
         const role = uData.role;
         if (role === 'superadmin') {
           navigate('/admin');
-        } else if (role === 'admin' || role === 'instructor') {
-          navigate('/dashboard');
         } else {
-          navigate('/');
+          navigate('/dashboard');
         }
       } else {
         navigate('/');
@@ -93,10 +91,8 @@ export function Login() {
         const role = uData.role;
         if (role === 'superadmin') {
           navigate('/admin');
-        } else if (role === 'admin' || role === 'instructor') {
-          navigate('/dashboard');
         } else {
-          navigate('/');
+          navigate('/dashboard');
         }
       } else {
         navigate('/');
