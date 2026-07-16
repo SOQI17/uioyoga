@@ -89,6 +89,7 @@ export function SuperadminDashboard() {
   const [studios, setStudios] = useState<StudioInfo[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingStudio, setEditingStudio] = useState<StudioInfo | null>(null);
   
@@ -125,10 +126,40 @@ export function SuperadminDashboard() {
   const fetchUsers = async () => {
     try {
       const snap = await getDocs(collection(db, 'users'));
-      const list = snap.docs.map(doc => doc.data() as UserProfile);
+      const list = snap.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
       setUsers(list);
     } catch (err) {
       console.error("Error fetching users:", err);
+    }
+  };
+
+  const handleUpdateUser = async (uid: string, updatedFields: Partial<UserProfile>) => {
+    setLoading(true);
+    try {
+      const userRef = doc(db, 'users', uid);
+      await updateDoc(userRef, updatedFields);
+      alert('Usuario actualizado con éxito.');
+      await fetchUsers();
+    } catch (err: any) {
+      console.error("Error updating user:", err);
+      alert('Error al actualizar usuario: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (uid: string) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este usuario de la base de datos?")) return;
+    setLoading(true);
+    try {
+      await deleteDoc(doc(db, 'users', uid));
+      alert('Usuario eliminado con éxito.');
+      await fetchUsers();
+    } catch (err: any) {
+      console.error("Error deleting user:", err);
+      alert('Error al eliminar usuario: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -430,6 +461,89 @@ export function SuperadminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* User Management Table */}
+        <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden mb-12">
+          <CardHeader className="px-8 pt-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="font-serif text-2xl text-gris">Usuarios Registrados (Gestión de Roles)</CardTitle>
+              <p className="text-xs text-gris/60">Gestiona roles de usuarios y sus accesos a cada estudio en tiempo real.</p>
+            </div>
+            {/* Search Input */}
+            <div className="w-full md:w-72">
+              <Input
+                type="text"
+                placeholder="Buscar usuario..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="rounded-2xl border-none bg-arena/5 px-4 py-2 text-xs shadow-inner text-gris"
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="px-8 pb-8">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="bg-arena/30 text-gris/60 border-b border-arena/20 font-bold uppercase tracking-wider">
+                    <th className="p-4">Usuario</th>
+                    <th className="p-4">Email</th>
+                    <th className="p-4">Rol Asignado</th>
+                    <th className="p-4">Estudio Asignado</th>
+                    <th className="p-4" style={{ width: '100px' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-arena/10">
+                  {users
+                    .filter(u => 
+                      u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map(u => (
+                      <tr key={u.uid} className="text-gris/85 hover:bg-arena/5 transition-colors">
+                        <td className="p-4 font-semibold">{u.name}</td>
+                        <td className="p-4 text-xs font-mono">{u.email}</td>
+                        <td className="p-4">
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleUpdateUser(u.uid, { role: e.target.value as any })}
+                            className="bg-arena/40 text-gris rounded-xl px-3 py-1.5 text-xs border border-arena/30 focus:outline-none cursor-pointer focus:ring-1 focus:ring-salvia"
+                          >
+                            <option value="student">Alumno (Student)</option>
+                            <option value="instructor">Instructor</option>
+                            <option value="admin">Administrador (Admin)</option>
+                            <option value="superadmin">Superadministrador (S.Admin)</option>
+                          </select>
+                        </td>
+                        <td className="p-4">
+                          <select
+                            value={u.studioId || ''}
+                            onChange={(e) => handleUpdateUser(u.uid, { studioId: e.target.value || null as any })}
+                            className="bg-arena/40 text-gris rounded-xl px-3 py-1.5 text-xs border border-arena/30 focus:outline-none cursor-pointer focus:ring-1 focus:ring-salvia w-full max-w-[200px]"
+                          >
+                            <option value="">-- Ninguno / Base SaaS --</option>
+                            {studios.map(s => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="p-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => handleDeleteUser(u.uid)}
+                            className="p-2 border border-red-500/30 hover:bg-red-500/10 text-red-400 rounded-xl"
+                            title="Eliminar usuario"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
 
         {/* Modal Form */}
         {modalOpen && (
