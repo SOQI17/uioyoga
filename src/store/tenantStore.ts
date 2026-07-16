@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, getTenantId } from '../lib/firebase';
 
 export interface StudioInfo {
@@ -67,14 +67,16 @@ export const useTenantStore = create<TenantState>((set) => ({
     }
 
     try {
-      // 1. Fetch studio billing and status info
-      const studioSnap = await getDoc(doc(db, 'studios', id));
+      // 1. Fetch studio billing and status info by querying the subdomain field
+      const q = query(collection(db, 'studios'), where('subdomain', '==', id));
+      const querySnap = await getDocs(q);
       
-      if (studioSnap.exists()) {
-        const info = { id, ...studioSnap.data() } as StudioInfo;
+      if (!querySnap.empty) {
+        const studioDoc = querySnap.docs[0];
+        const info = { id: studioDoc.id, ...studioDoc.data() } as StudioInfo;
 
-        // 2. Fetch studio landing settings
-        const settingsSnap = await getDoc(doc(db, 'settings', id));
+        // 2. Fetch studio landing settings using the actual studio document ID
+        const settingsSnap = await getDoc(doc(db, 'settings', studioDoc.id));
         const settings = settingsSnap.exists() ? (settingsSnap.data() as StudioSettings) : null;
 
         set({
