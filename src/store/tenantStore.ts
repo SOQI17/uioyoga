@@ -47,6 +47,13 @@ export const useTenantStore = create<TenantState>((set) => ({
 
     // Superadmin bypass: if tenant is 'uioyoga' (root platform), it is the base platform
     if (id === 'uioyoga') {
+      const root = document.documentElement;
+      root.style.removeProperty('--color-salvia');
+      root.style.removeProperty('--color-marfil');
+      root.style.removeProperty('--color-arena');
+      root.style.removeProperty('--color-terracota');
+      root.style.removeProperty('--color-gris');
+
       set({
         tenantInfo: {
           id: 'uioyoga',
@@ -78,6 +85,23 @@ export const useTenantStore = create<TenantState>((set) => ({
         // 2. Fetch studio landing settings using the actual studio document ID
         const settingsSnap = await getDoc(doc(db, 'settings', studioDoc.id));
         const settings = settingsSnap.exists() ? (settingsSnap.data() as StudioSettings) : null;
+
+        // Apply custom colors to document element if present, or fallback to defaults
+        const root = document.documentElement;
+        if (info.primaryColor) root.style.setProperty('--color-salvia', info.primaryColor);
+        else root.style.removeProperty('--color-salvia');
+
+        if (info.backgroundColor) root.style.setProperty('--color-marfil', info.backgroundColor);
+        else root.style.removeProperty('--color-marfil');
+
+        if (info.secondaryColor) root.style.setProperty('--color-arena', info.secondaryColor);
+        else root.style.removeProperty('--color-arena');
+
+        if (info.accentColor) root.style.setProperty('--color-terracota', info.accentColor);
+        else root.style.removeProperty('--color-terracota');
+
+        if (info.textColor) root.style.setProperty('--color-gris', info.textColor);
+        else root.style.removeProperty('--color-gris');
 
         set({
           tenantInfo: info,

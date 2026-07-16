@@ -20,6 +20,11 @@ interface StudioInfo {
   subscriptionExpiry?: string;
   trialEndsAt?: string;
   ownerId?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
 }
 
 interface UserProfile {
@@ -46,6 +51,11 @@ export function SuperadminDashboard() {
   const [subscriptionExpiry, setSubscriptionExpiry] = useState('');
   const [trialEndsAt, setTrialEndsAt] = useState('');
   const [ownerId, setOwnerId] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('#9ca688');
+  const [secondaryColor, setSecondaryColor] = useState('#2e1d15');
+  const [accentColor, setAccentColor] = useState('#c9856d');
+  const [backgroundColor, setBackgroundColor] = useState('#09090a');
+  const [textColor, setTextColor] = useState('#fafaf9');
 
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -98,6 +108,11 @@ export function SuperadminDashboard() {
     setSubscriptionExpiry(expiryDate.toISOString().slice(0, 10));
 
     setOwnerId('');
+    setPrimaryColor('#9ca688');
+    setSecondaryColor('#2e1d15');
+    setAccentColor('#c9856d');
+    setBackgroundColor('#09090a');
+    setTextColor('#fafaf9');
     setModalOpen(true);
   };
 
@@ -111,6 +126,11 @@ export function SuperadminDashboard() {
     setSubscriptionExpiry(studio.subscriptionExpiry ? studio.subscriptionExpiry.slice(0, 10) : '');
     setTrialEndsAt(studio.trialEndsAt ? studio.trialEndsAt.slice(0, 10) : '');
     setOwnerId(studio.ownerId || '');
+    setPrimaryColor(studio.primaryColor || '#9ca688');
+    setSecondaryColor(studio.secondaryColor || '#2e1d15');
+    setAccentColor(studio.accentColor || '#c9856d');
+    setBackgroundColor(studio.backgroundColor || '#09090a');
+    setTextColor(studio.textColor || '#fafaf9');
     setModalOpen(true);
   };
 
@@ -128,6 +148,11 @@ export function SuperadminDashboard() {
       subscriptionExpiry: subscriptionExpiry ? new Date(subscriptionExpiry).toISOString() : '',
       trialEndsAt: trialEndsAt ? new Date(trialEndsAt).toISOString() : '',
       ownerId: ownerId.trim(),
+      primaryColor,
+      secondaryColor,
+      accentColor,
+      backgroundColor,
+      textColor,
       updatedAt: new Date().toISOString()
     };
 
@@ -342,7 +367,7 @@ export function SuperadminDashboard() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="w-full max-w-lg rounded-[32px] border-[8px] border-white bg-arena shadow-xl p-8 relative overflow-hidden"
+              className="w-full max-w-lg rounded-[32px] border-[8px] border-white bg-arena shadow-xl p-8 relative max-h-[90vh] overflow-y-auto scrollbar-thin"
             >
               <h3 className="font-serif text-3xl text-gris mb-6">
                 {editingStudio ? 'Editar Estudio' : 'Crear Nuevo Estudio'}
@@ -453,6 +478,64 @@ export function SuperadminDashboard() {
                       onChange={(e) => setSubscriptionExpiry(e.target.value)}
                       className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner"
                     />
+                  </div>
+                </div>
+
+                {/* Branding Personalizado (Colores) */}
+                <div className="border-t border-arena/20 pt-4 space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-salvia">Personalización de Colores (Marca Blanca)</h4>
+                  
+                  <div className="grid grid-cols-5 gap-2">
+                    <div className="flex flex-col items-center gap-1">
+                      <Label htmlFor="color-salvia" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Principal</Label>
+                      <input
+                        id="color-salvia"
+                        type="color"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                      />
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <Label htmlFor="color-arena" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Secundario</Label>
+                      <input
+                        id="color-arena"
+                        type="color"
+                        value={secondaryColor}
+                        onChange={(e) => setSecondaryColor(e.target.value)}
+                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                      />
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <Label htmlFor="color-terracota" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Acento</Label>
+                      <input
+                        id="color-terracota"
+                        type="color"
+                        value={accentColor}
+                        onChange={(e) => setAccentColor(e.target.value)}
+                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                      />
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <Label htmlFor="color-marfil" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Fondo</Label>
+                      <input
+                        id="color-marfil"
+                        type="color"
+                        value={backgroundColor}
+                        onChange={(e) => setBackgroundColor(e.target.value)}
+                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                      />
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <Label htmlFor="color-gris" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Texto</Label>
+                      <input
+                        id="color-gris"
+                        type="color"
+                        value={textColor}
+                        onChange={(e) => setTextColor(e.target.value)}
+                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                      />
+                    </div>
                   </div>
                 </div>
 
