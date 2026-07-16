@@ -34,7 +34,9 @@ export function Navbar() {
 
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: userData?.role === 'admin' ? 'Administración' : 'Mi Espacio', path: '/dashboard' },
+    ...(userData?.role === 'superadmin'
+      ? [{ name: 'Superadmin', path: '/admin' }]
+      : [{ name: userData?.role === 'admin' ? 'Administración' : 'Mi Espacio', path: '/dashboard' }]),
     { name: 'Agendamiento', path: '/schedule' },
     { name: 'Retiros', path: '/retreats' },
   ];
@@ -82,7 +84,7 @@ export function Navbar() {
                 <p className="text-[10px] font-bold uppercase leading-none opacity-40">Próxima Clase</p>
                 <p className="text-xs font-medium">Hatha Yoga • 18:00</p>
               </div>
-              <Link to="/dashboard" className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-arena p-0.5 hover:border-salvia transition-colors">
+              <Link to={userData?.role === 'superadmin' ? '/admin' : '/dashboard'} className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-arena p-0.5 hover:border-salvia transition-colors">
                 <div className="h-full w-full rounded-full bg-salvia/20 flex items-center justify-center text-salvia">
                   <User className="h-4 w-4" />
                 </div>
@@ -135,9 +137,9 @@ export function Navbar() {
               ))}
               <div className="mt-4 flex flex-col gap-4 border-t border-arena pt-4">
                 {user ? (
-                  <Link to="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-salvia">
+                  <Link to={userData?.role === 'superadmin' ? '/admin' : '/dashboard'} onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-salvia">
                     <User className="h-4 w-4" />
-                    Mi Espacio
+                    {userData?.role === 'superadmin' ? 'Superadmin' : 'Mi Espacio'}
                   </Link>
                 ) : (
                   <>
