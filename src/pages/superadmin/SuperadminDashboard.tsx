@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { Label } from '../../components/ui/Label';
 import { Input } from '../../components/ui/Input';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Plus, Edit2, Trash2, Users, CreditCard, Building } from 'lucide-react';
+import { ShieldCheck, Plus, Edit2, Trash2, Users, CreditCard, Building, ExternalLink } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -316,10 +316,15 @@ export function SuperadminDashboard() {
                           : studio.subscriptionExpiry ? new Date(studio.subscriptionExpiry).toLocaleDateString() : 'N/A'}
                       </td>
                       <td className="p-4 flex gap-2">
-                        <Button variant="outline" onClick={() => handleOpenEdit(studio)} className="p-2 border border-arena hover:bg-arena text-gris rounded-xl">
+                        <a href={`/dashboard?tenant=${studio.subdomain}`} target="_blank" rel="noreferrer" title="Visitar panel del estudio">
+                          <Button variant="outline" className="p-2 border border-salvia/30 hover:bg-salvia/10 text-salvia rounded-xl">
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </a>
+                        <Button variant="outline" onClick={() => handleOpenEdit(studio)} className="p-2 border border-arena hover:bg-arena text-gris rounded-xl" title="Editar estudio">
                           <Edit2 className="h-3 w-3" />
                         </Button>
-                        <Button variant="outline" onClick={() => handleDeleteStudio(studio.id)} className="p-2 border border-red-500/30 hover:bg-red-500/10 text-red-400 rounded-xl">
+                        <Button variant="outline" onClick={() => handleDeleteStudio(studio.id)} className="p-2 border border-red-500/30 hover:bg-red-500/10 text-red-400 rounded-xl" title="Eliminar estudio">
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </td>
