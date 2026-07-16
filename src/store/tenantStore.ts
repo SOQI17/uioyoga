@@ -122,11 +122,18 @@ export const useTenantStore = create<TenantState>((set) => ({
           root.style.removeProperty('--color-border-override-50');
         }
 
-        // Dynamic tab title and favicon updates for shortcuts and PWA
+        // Dynamic tab title and PWA metadata updates
         if (info.name) {
           document.title = info.name;
+          
+          let metaAppName: HTMLMetaElement | null = document.querySelector("meta[name='application-name']");
+          if (metaAppName) metaAppName.content = info.name;
+
+          let metaAppleTitle: HTMLMetaElement | null = document.querySelector("meta[name='apple-mobile-web-app-title']");
+          if (metaAppleTitle) metaAppleTitle.content = info.name;
         }
-        const iconUrl = settings?.teaserImage || settings?.splashImage || '/favicon.ico';
+
+        const iconUrl = settings?.teaserImage || settings?.splashImage || '/logo.jpeg';
         if (iconUrl) {
           let linkIcon: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
           if (!linkIcon) {
@@ -143,6 +150,42 @@ export const useTenantStore = create<TenantState>((set) => ({
             document.getElementsByTagName('head')[0].appendChild(linkApple);
           }
           linkApple.href = iconUrl;
+
+          // Dynamically generate PWA manifest for custom shortcut names and icons
+          try {
+            const manifest = {
+              name: info.name || 'UIO Yoga Platform',
+              short_name: info.name || 'UIO Yoga',
+              start_url: window.location.origin,
+              display: 'standalone',
+              background_color: info.backgroundColor || '#09090a',
+              theme_color: info.primaryColor || '#09090a',
+              icons: [
+                {
+                  src: iconUrl,
+                  sizes: '192x192',
+                  type: 'image/jpeg',
+                  purpose: 'any maskable'
+                },
+                {
+                  src: iconUrl,
+                  sizes: '512x512',
+                  type: 'image/jpeg'
+                }
+              ]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            let linkManifest: HTMLLinkElement | null = document.querySelector("link[rel='manifest']");
+            if (!linkManifest) {
+              linkManifest = document.createElement('link');
+              linkManifest.rel = 'manifest';
+              document.getElementsByTagName('head')[0].appendChild(linkManifest);
+            }
+            linkManifest.href = manifestUrl;
+          } catch (e) {
+            console.warn("Could not generate dynamic manifest blob:", e);
+          }
         }
 
         set({
