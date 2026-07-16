@@ -29,7 +29,8 @@ const DEFAULT_SETTINGS = {
   teaserImage: 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?q=80&w=600&auto=format&fit=crop',
   splashTitle: 'UIO YOGA',
   splashSubtitle: 'Vive la experiencia',
-  splashImage: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop'
+  splashImage: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop',
+  splashLogo: ''
 };
 
 export function Home() {
@@ -59,6 +60,7 @@ export function Home() {
     splashTitle: tenantSettings?.splashTitle || tenantInfo?.name || DEFAULT_SETTINGS.splashTitle,
     splashSubtitle: tenantSettings?.splashSubtitle || DEFAULT_SETTINGS.splashSubtitle,
     splashImage: tenantSettings?.splashImage || DEFAULT_SETTINGS.splashImage,
+    splashLogo: tenantSettings?.splashLogo || DEFAULT_SETTINGS.splashLogo,
   };
 
   useEffect(() => {
@@ -108,9 +110,13 @@ export function Home() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: "easeOut" }}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-salvia mb-8 shadow-lg"
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-salvia mb-8 shadow-lg overflow-hidden border-2 border-salvia/40 shrink-0"
           >
-            <div className="h-6 w-6 rounded-full border-2 border-white"></div>
+            {settings.splashLogo ? (
+              <img src={settings.splashLogo} alt="Splash Logo" className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-8 w-8 rounded-full border-2 border-white"></div>
+            )}
           </motion.div>
 
           <motion.h1

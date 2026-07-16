@@ -16,7 +16,8 @@ const DEFAULT_SETTINGS = {
   teaserImage: '',
   splashTitle: 'UIO YOGA',
   splashSubtitle: 'Vive la experiencia',
-  splashImage: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop'
+  splashImage: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop',
+  splashLogo: ''
 };
 
 interface AdminHomeSettingsProps {
@@ -34,11 +35,13 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
   const [splashTitle, setSplashTitle] = useState('');
   const [splashSubtitle, setSplashSubtitle] = useState('');
   const [splashImage, setSplashImage] = useState('');
+  const [splashLogo, setSplashLogo] = useState('');
   
   const [heroUploading, setHeroUploading] = useState(false);
   const [philosophyUploading, setPhilosophyUploading] = useState(false);
   const [teaserUploading, setTeaserUploading] = useState(false);
   const [splashUploading, setSplashUploading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -61,6 +64,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
           setSplashTitle(data.splashTitle || DEFAULT_SETTINGS.splashTitle);
           setSplashSubtitle(data.splashSubtitle || DEFAULT_SETTINGS.splashSubtitle);
           setSplashImage(data.splashImage || DEFAULT_SETTINGS.splashImage);
+          setSplashLogo(data.splashLogo || '');
         } else {
           setHeroTitle(DEFAULT_SETTINGS.heroTitle);
           setHeroSubtitle(DEFAULT_SETTINGS.heroSubtitle);
@@ -72,6 +76,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
           setSplashTitle(DEFAULT_SETTINGS.splashTitle);
           setSplashSubtitle(DEFAULT_SETTINGS.splashSubtitle);
           setSplashImage(DEFAULT_SETTINGS.splashImage);
+          setSplashLogo('');
         }
       } catch (err) {
         console.error("Error loading home settings:", err);
@@ -146,6 +151,22 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
     }
   };
 
+  const handleSplashLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    setError('');
+    try {
+      const url = await uploadToCloudinary(file);
+      setSplashLogo(url);
+    } catch (err: any) {
+      console.error("Error uploading splash logo:", err);
+      setError(err.message || 'Error al subir la foto de bienvenida.');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -162,6 +183,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
       splashTitle,
       splashSubtitle,
       splashImage,
+      splashLogo,
       updatedAt: new Date().toISOString()
     };
 
@@ -386,6 +408,36 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
                   className="flex items-center justify-center w-full rounded-full border border-salvia/30 text-salvia bg-transparent px-4 py-2.5 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-salvia/10 select-none transition-colors text-center border-dashed border-2"
                 >
                   {splashUploading ? 'Subiendo...' : splashImage ? 'Cambiar Foto de Entrada' : 'Subir Foto de Entrada'}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* SPLASH LOGO Uploader */}
+          <div className="space-y-1">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Foto o Logo en el Círculo de Entrada</Label>
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/50 p-4 rounded-2xl border border-arena/30">
+              {splashLogo ? (
+                <img src={splashLogo} alt="Splash Logo Preview" className="w-16 h-16 rounded-full object-cover shadow-sm border border-arena bg-arena shrink-0" />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-salvia shrink-0 shadow-sm border border-arena">
+                  <div className="h-8 w-8 rounded-full border-2 border-white"></div>
+                </div>
+              )}
+              <div className="flex-1 w-full">
+                <input
+                  id="splash-logo-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSplashLogoUpload}
+                  disabled={logoUploading}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="splash-logo-upload"
+                  className="flex items-center justify-center w-full rounded-full border border-salvia/30 text-salvia bg-transparent px-4 py-2.5 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-salvia/10 select-none transition-colors text-center border-dashed border-2"
+                >
+                  {logoUploading ? 'Subiendo...' : splashLogo ? 'Cambiar Foto de Círculo' : 'Subir Foto de Círculo'}
                 </label>
               </div>
             </div>
