@@ -13,7 +13,7 @@ export function Navbar() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
-  const logoUrl = tenantSettings?.teaserImage || '';
+  const logoUrl = tenantSettings?.teaserImage || 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?q=80&w=200&auto=format&fit=crop';
   const brandName = tenantSettings?.splashTitle || tenantInfo?.name || 'UIO YOGA';
 
   const navLinks = [
