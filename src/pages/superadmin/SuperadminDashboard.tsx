@@ -282,7 +282,7 @@ export function SuperadminDashboard() {
             
             await updateDoc(userDocRef, {
               role: isSuperAdmin ? 'superadmin' : 'admin',
-              tenantId: docId
+              tenantId: subdomain.trim().toLowerCase()
             });
           }
         } catch (err) {
@@ -545,7 +545,7 @@ export function SuperadminDashboard() {
                           >
                             <option value="">-- Ninguno / Base SaaS --</option>
                             {studios.map(s => (
-                              <option key={s.id} value={s.id}>{s.name}</option>
+                              <option key={s.id} value={s.subdomain}>{s.name}</option>
                             ))}
                           </select>
                         </td>
