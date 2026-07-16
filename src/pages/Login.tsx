@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db, getTenantId } from '../lib/firebase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -21,21 +21,31 @@ export function Login() {
     setError('');
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-      
-      const isAdmin = userCredential.user.email?.toLowerCase() === 'suqisam@gmail.com';
+      let userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      const isOwner = userCredential.user.email?.toLowerCase() === 'suqisam@gmail.com';
+
+      if (!userDoc.exists() && isOwner) {
+        // Auto-create superadmin doc in Firestore
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          uid: userCredential.user.uid,
+          name: 'Alexis Guerra',
+          email: userCredential.user.email,
+          role: 'superadmin',
+          createdAt: new Date().toISOString()
+        });
+        userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      }
+
       if (userDoc.exists()) {
         const uData = userDoc.data();
-        if (!isAdmin && uData.tenantId && uData.tenantId !== getTenantId()) {
+        if (!isOwner && uData.tenantId && uData.tenantId !== getTenantId()) {
           await auth.signOut();
           setError('Tu cuenta pertenece a otro estudio de yoga.');
           setLoading(false);
           return;
         }
-      }
 
-      if (userDoc.exists()) {
-        const role = userDoc.data().role;
+        const role = uData.role;
         if (role === 'superadmin') {
           navigate('/admin');
         } else if (role === 'admin' || role === 'instructor') {
@@ -57,20 +67,30 @@ export function Login() {
     const provider = new GoogleAuthProvider();
     try {
       const userCredential = await signInWithPopup(auth, provider);
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-      
-      const isAdmin = userCredential.user.email?.toLowerCase() === 'suqisam@gmail.com';
+      let userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      const isOwner = userCredential.user.email?.toLowerCase() === 'suqisam@gmail.com';
+
+      if (!userDoc.exists() && isOwner) {
+        // Auto-create superadmin doc in Firestore
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          uid: userCredential.user.uid,
+          name: userCredential.user.displayName || 'Alexis Guerra',
+          email: userCredential.user.email,
+          role: 'superadmin',
+          createdAt: new Date().toISOString()
+        });
+        userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      }
+
       if (userDoc.exists()) {
         const uData = userDoc.data();
-        if (!isAdmin && uData.tenantId && uData.tenantId !== getTenantId()) {
+        if (!isOwner && uData.tenantId && uData.tenantId !== getTenantId()) {
           await auth.signOut();
           setError('Tu cuenta pertenece a otro estudio de yoga.');
           return;
         }
-      }
 
-      if (userDoc.exists()) {
-        const role = userDoc.data().role;
+        const role = uData.role;
         if (role === 'superadmin') {
           navigate('/admin');
         } else if (role === 'admin' || role === 'instructor') {
