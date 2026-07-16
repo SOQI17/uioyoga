@@ -38,8 +38,24 @@ export function Login() {
 
       if (userDoc.exists()) {
         const uData = userDoc.data();
-        const cleanUserTenant = uData.tenantId?.replace('.uioyoga.com', '').toLowerCase();
-        const cleanDetectedTenant = getTenantId()?.replace('.uioyoga.com', '').toLowerCase();
+        // Resolve studio subdomain
+        let allowedSubdomain = uData.tenantId;
+        if (uData.tenantId) {
+          try {
+            const studioDoc = await getDoc(doc(db, 'studios', uData.tenantId));
+            if (studioDoc.exists()) {
+              const sData = studioDoc.data();
+              if (sData.subdomain) {
+                allowedSubdomain = sData.subdomain;
+              }
+            }
+          } catch (err) {
+            console.warn("Could not fetch studio subdomain:", err);
+          }
+        }
+
+        const cleanUserTenant = allowedSubdomain?.replace('.uioyoga.com', '').replace(/\s+/g, '').toLowerCase();
+        const cleanDetectedTenant = getTenantId()?.replace('.uioyoga.com', '').replace(/\s+/g, '').toLowerCase();
         if (!isOwner && cleanUserTenant && cleanUserTenant !== cleanDetectedTenant) {
           await auth.signOut();
           setError('Tu cuenta pertenece a otro estudio de yoga.');
@@ -84,8 +100,24 @@ export function Login() {
 
       if (userDoc.exists()) {
         const uData = userDoc.data();
-        const cleanUserTenant = uData.tenantId?.replace('.uioyoga.com', '').toLowerCase();
-        const cleanDetectedTenant = getTenantId()?.replace('.uioyoga.com', '').toLowerCase();
+        // Resolve studio subdomain
+        let allowedSubdomain = uData.tenantId;
+        if (uData.tenantId) {
+          try {
+            const studioDoc = await getDoc(doc(db, 'studios', uData.tenantId));
+            if (studioDoc.exists()) {
+              const sData = studioDoc.data();
+              if (sData.subdomain) {
+                allowedSubdomain = sData.subdomain;
+              }
+            }
+          } catch (err) {
+            console.warn("Could not fetch studio subdomain:", err);
+          }
+        }
+
+        const cleanUserTenant = allowedSubdomain?.replace('.uioyoga.com', '').replace(/\s+/g, '').toLowerCase();
+        const cleanDetectedTenant = getTenantId()?.replace('.uioyoga.com', '').replace(/\s+/g, '').toLowerCase();
         if (!isOwner && cleanUserTenant && cleanUserTenant !== cleanDetectedTenant) {
           await auth.signOut();
           setError('Tu cuenta pertenece a otro estudio de yoga.');

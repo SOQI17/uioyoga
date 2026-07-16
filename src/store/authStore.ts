@@ -92,9 +92,24 @@ export const useAuthStore = create<AuthState>((set) => ({
 
             console.log(`DIAGNOSTICO TENANT - Email: ${data.email}, Role: ${data.role}, UserTenant: ${data.tenantId}, DetectedTenant: ${getTenantId()}`);
 
-            // Tenant restriction for non-superadmins
-            const cleanUserTenant = data.tenantId?.replace('.uioyoga.com', '').toLowerCase();
-            const cleanDetectedTenant = getTenantId()?.replace('.uioyoga.com', '').toLowerCase();
+            // Resolve studio subdomain
+            let allowedSubdomain = data.tenantId;
+            if (data.tenantId) {
+              try {
+                const studioDoc = await getDoc(doc(db, 'studios', data.tenantId));
+                if (studioDoc.exists()) {
+                  const sData = studioDoc.data();
+                  if (sData.subdomain) {
+                    allowedSubdomain = sData.subdomain;
+                  }
+                }
+              } catch (err) {
+                console.warn("Could not fetch studio subdomain:", err);
+              }
+            }
+
+            const cleanUserTenant = allowedSubdomain?.replace('.uioyoga.com', '').replace(/\s+/g, '').toLowerCase();
+            const cleanDetectedTenant = getTenantId()?.replace('.uioyoga.com', '').replace(/\s+/g, '').toLowerCase();
 
             if (data.role !== 'superadmin' && cleanUserTenant && cleanUserTenant !== cleanDetectedTenant) {
               console.warn(`User belongs to a different tenant. UserTenant: ${cleanUserTenant}, DetectedTenant: ${cleanDetectedTenant}. Signing out...`);
