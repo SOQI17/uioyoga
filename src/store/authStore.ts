@@ -90,19 +90,14 @@ export const useAuthStore = create<AuthState>((set) => ({
               }
             }
 
-            console.log("DIAGNOSTICO TENANT:", {
-              email: data.email,
-              role: data.role,
-              userTenantId: data.tenantId,
-              detectedTenantId: getTenantId()
-            });
+            console.log(`DIAGNOSTICO TENANT - Email: ${data.email}, Role: ${data.role}, UserTenant: ${data.tenantId}, DetectedTenant: ${getTenantId()}`);
 
             // Tenant restriction for non-superadmins
             const cleanUserTenant = data.tenantId?.replace('.uioyoga.com', '').toLowerCase();
             const cleanDetectedTenant = getTenantId()?.replace('.uioyoga.com', '').toLowerCase();
 
             if (data.role !== 'superadmin' && cleanUserTenant && cleanUserTenant !== cleanDetectedTenant) {
-              console.warn("User belongs to a different tenant. Signing out...");
+              console.warn(`User belongs to a different tenant. UserTenant: ${cleanUserTenant}, DetectedTenant: ${cleanDetectedTenant}. Signing out...`);
               await auth.signOut();
               set({ user: null, userData: null });
               return;
