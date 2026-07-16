@@ -78,25 +78,6 @@
   background-color: rgba(18, 18, 20, 0.9) !important;
 }
 
-/* Asegurar legibilidad del texto oscuro en inputs y tablas */
-.text-gris {
-  color: #e7e5e4 !important; /* Texto claro */
-}
-.text-gris\/80 {
-  color: rgba(231, 229, 228, 0.8) !important;
-}
-.text-gris\/70 {
-  color: rgba(231, 229, 228, 0.7) !important;
-}
-.text-gris\/60 {
-  color: rgba(231, 229, 228, 0.6) !important;
-}
-.text-gris\/50 {
-  color: rgba(231, 229, 228, 0.5) !important;
-}
-.text-gris\/40 {
-  color: rgba(231, 229, 228, 0.4) !important;
-}
 
 /* Estilos específicos para inputs oscuros en formularios */
 input, select, textarea {
