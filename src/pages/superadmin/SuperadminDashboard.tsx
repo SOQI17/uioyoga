@@ -34,7 +34,7 @@ interface UserProfile {
   name: string;
   email: string;
   role: string;
-  studioId?: string;
+  tenantId?: string;
 }
 
 const COLOR_PRESETS = [
@@ -282,7 +282,7 @@ export function SuperadminDashboard() {
             
             await updateDoc(userDocRef, {
               role: isSuperAdmin ? 'superadmin' : 'admin',
-              studioId: docId
+              tenantId: docId
             });
           }
         } catch (err) {
@@ -518,7 +518,7 @@ export function SuperadminDashboard() {
                     .filter(u => {
                       const matchesSearch = u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                             u.email?.toLowerCase().includes(searchQuery.toLowerCase());
-                      const matchesStudio = studioFilter ? u.studioId === studioFilter : true;
+                      const matchesStudio = studioFilter ? u.tenantId === studioFilter : true;
                       return matchesSearch && matchesStudio;
                     })
                     .map(u => (
@@ -539,8 +539,8 @@ export function SuperadminDashboard() {
                         </td>
                         <td className="p-4">
                           <select
-                            value={u.studioId || ''}
-                            onChange={(e) => handleUpdateUser(u.uid, { studioId: e.target.value || null as any })}
+                            value={u.tenantId || ''}
+                            onChange={(e) => handleUpdateUser(u.uid, { tenantId: e.target.value || null as any })}
                             className="bg-arena/40 text-gris rounded-xl px-3 py-1.5 text-xs border border-arena/30 focus:outline-none cursor-pointer focus:ring-1 focus:ring-salvia w-full max-w-[200px]"
                           >
                             <option value="">-- Ninguno / Base SaaS --</option>
