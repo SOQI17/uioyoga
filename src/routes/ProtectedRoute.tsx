@@ -37,6 +37,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   // 4. Verify user belongs to the current tenant / subdomain
+  console.log("DEBUG_SAAS_AUTH:", { userEmail: userData?.email, userRole: userData?.role, userTenantId: userData?.tenantId, currentTenantId: tenantId });
   if (userData.tenantId !== tenantId) {
     console.warn("Unauthorized access: User belongs to a different tenant.");
     return <Navigate to="/login" replace />;
