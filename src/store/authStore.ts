@@ -58,23 +58,6 @@ export const useAuthStore = create<AuthState>((set) => ({
               }
             }
 
-            // Tenant restriction for non-superadmins
-            if (data.role !== 'superadmin' && data.tenantId && data.tenantId !== getTenantId()) {
-              console.warn("User belongs to a different tenant. Signing out...");
-              await auth.signOut();
-              set({ user: null, userData: null });
-              return;
-            }
-            
-            if (data.role !== 'superadmin' && !data.tenantId) {
-              data.tenantId = getTenantId();
-              try {
-                await setDoc(doc(db, 'users', user.uid), { tenantId: getTenantId() }, { merge: true });
-              } catch (writeErr) {
-                console.warn("Could not save tenantId to user doc:", writeErr);
-              }
-            }
-            
             // Auto-promote alexisguerra9577@gmail.com to admin of kukutyoga
             if (data.email?.toLowerCase() === 'alexisguerra9577@gmail.com') {
               let updated = false;
@@ -92,6 +75,23 @@ export const useAuthStore = create<AuthState>((set) => ({
                 } catch (writeErr) {
                   console.warn("Could not promote alexisguerra9577@gmail.com to admin in Firestore:", writeErr);
                 }
+              }
+            }
+
+            // Tenant restriction for non-superadmins
+            if (data.role !== 'superadmin' && data.tenantId && data.tenantId !== getTenantId()) {
+              console.warn("User belongs to a different tenant. Signing out...");
+              await auth.signOut();
+              set({ user: null, userData: null });
+              return;
+            }
+            
+            if (data.role !== 'superadmin' && !data.tenantId) {
+              data.tenantId = getTenantId();
+              try {
+                await setDoc(doc(db, 'users', user.uid), { tenantId: getTenantId() }, { merge: true });
+              } catch (writeErr) {
+                console.warn("Could not save tenantId to user doc:", writeErr);
               }
             }
 
