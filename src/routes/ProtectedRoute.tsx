@@ -37,7 +37,13 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   // 4. Verify user belongs to the current tenant / subdomain
-  if (userData.tenantId !== tenantId) {
+  const cleanUserTenant = userData.tenantId?.replace('.uioyoga.com', '').replace(/\s+/g, '').toLowerCase();
+  const cleanDetectedTenant = tenantId?.replace('.uioyoga.com', '').replace(/\s+/g, '').toLowerCase();
+  const cleanInfoTenantId = tenantInfo?.id?.replace('.uioyoga.com', '').replace(/\s+/g, '').toLowerCase();
+
+  const isMatchingTenant = cleanUserTenant === cleanDetectedTenant || cleanUserTenant === cleanInfoTenantId;
+
+  if (!isMatchingTenant) {
     console.warn("Unauthorized access: User belongs to a different tenant.");
     return <Navigate to="/login" replace />;
   }
