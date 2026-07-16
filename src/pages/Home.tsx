@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, limit } from 'firebase/firestore';
 import { db, getTenantId } from '../lib/firebase';
+import { useTenantStore } from '../store/tenantStore';
 import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Link } from 'react-router-dom';
@@ -32,9 +33,8 @@ const DEFAULT_SETTINGS = {
 };
 
 export function Home() {
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const { tenantInfo, tenantSettings, loadingTenant } = useTenantStore();
   const [featuredClasses, setFeaturedClasses] = useState<YogaClass[]>([]);
-  const [loadingSettings, setLoadingSettings] = useState(true);
   const [showSplash, setShowSplash] = useState(() => {
     // Check if splash was shown in the current page load session
     return !(window as any).__uioyoga_splash_shown;
@@ -45,15 +45,25 @@ export function Home() {
     setShowSplash(false);
   };
 
+  const settings = {
+    ...DEFAULT_SETTINGS,
+    ...tenantSettings,
+    // Fallbacks if some properties are missing
+    heroTitle: tenantSettings?.heroTitle || DEFAULT_SETTINGS.heroTitle,
+    heroSubtitle: tenantSettings?.heroSubtitle || DEFAULT_SETTINGS.heroSubtitle,
+    heroImage: tenantSettings?.heroImage || DEFAULT_SETTINGS.heroImage,
+    philosophyTitle: tenantSettings?.philosophyTitle || DEFAULT_SETTINGS.philosophyTitle,
+    philosophyText: tenantSettings?.philosophyText || DEFAULT_SETTINGS.philosophyText,
+    philosophyImage: tenantSettings?.philosophyImage || DEFAULT_SETTINGS.philosophyImage,
+    teaserImage: tenantSettings?.teaserImage || DEFAULT_SETTINGS.teaserImage,
+    splashTitle: tenantSettings?.splashTitle || tenantInfo?.name || DEFAULT_SETTINGS.splashTitle,
+    splashSubtitle: tenantSettings?.splashSubtitle || DEFAULT_SETTINGS.splashSubtitle,
+    splashImage: tenantSettings?.splashImage || DEFAULT_SETTINGS.splashImage,
+  };
+
   useEffect(() => {
     async function loadData() {
       try {
-        // Load custom homepage settings
-        const settingsSnap = await getDoc(doc(db, 'settings', getTenantId()));
-        if (settingsSnap.exists()) {
-          setSettings({ ...DEFAULT_SETTINGS, ...settingsSnap.data() });
-        }
-
         // Load featured classes (up to 3)
         const q = query(collection(db, 'classes'), where('tenantId', '==', getTenantId()), where('featured', '==', true), limit(3));
         const classesSnap = await getDocs(q);
@@ -65,15 +75,13 @@ export function Home() {
           setFeaturedClasses(fallbackSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as YogaClass)));
         }
       } catch (err) {
-        console.error("Error loading home page data:", err);
-      } finally {
-        setLoadingSettings(false);
+        console.error("Error loading home page classes:", err);
       }
     }
     loadData();
   }, []);
 
-  if (loadingSettings) {
+  if (loadingTenant) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
         <div className="h-10 w-10 animate-spin rounded-full border-t-2 border-b-2 border-salvia"></div>

@@ -84,7 +84,8 @@ export const useTenantStore = create<TenantState>((set) => ({
 
     try {
       // 1. Fetch studio billing and status info by querying the subdomain field
-      const q = query(collection(db, 'studios'), where('subdomain', '==', id));
+      const cleanId = id.replace('.uioyoga.com', '');
+      const q = query(collection(db, 'studios'), where('subdomain', 'in', [cleanId, `${cleanId}.uioyoga.com`]));
       const querySnap = await getDocs(q);
       
       if (!querySnap.empty) {

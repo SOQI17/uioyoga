@@ -1,36 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../ui/Button';
 import { Menu, X, User } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db, getTenantId } from '../../lib/firebase';
+
+import { useTenantStore } from '../../store/tenantStore';
 
 export function Navbar() {
   const { user, userData } = useAuthStore();
+  const { tenantInfo, tenantSettings } = useTenantStore();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string>('');
-  const [brandName, setBrandName] = useState<string>('UIO YOGA');
 
-  useEffect(() => {
-    async function loadLogo() {
-      try {
-        const docSnap = await getDoc(doc(db, 'settings', getTenantId()));
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setLogoUrl(data.teaserImage || '');
-          if (data.splashTitle) {
-            setBrandName(data.splashTitle);
-          }
-        }
-      } catch (err) {
-        console.error("Error loading logo in Navbar:", err);
-      }
-    }
-    loadLogo();
-  }, []);
+  const logoUrl = tenantSettings?.teaserImage || '';
+  const brandName = tenantSettings?.splashTitle || tenantInfo?.name || 'UIO YOGA';
 
   const navLinks = [
     { name: 'Home', path: '/' },
