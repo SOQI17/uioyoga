@@ -92,8 +92,8 @@ export const useTenantStore = create<TenantState>((set) => ({
         const studioDoc = querySnap.docs[0];
         const info = { id: studioDoc.id, ...studioDoc.data() } as StudioInfo;
 
-        // 2. Fetch studio landing settings using the actual studio document ID
-        const settingsSnap = await getDoc(doc(db, 'settings', studioDoc.id));
+        // 2. Fetch studio landing settings using the clean subdomain (tenant ID)
+        const settingsSnap = await getDoc(doc(db, 'settings', cleanId));
         const settings = settingsSnap.exists() ? (settingsSnap.data() as StudioSettings) : null;
 
         // Apply custom colors to document element if present, or fallback to defaults

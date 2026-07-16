@@ -258,7 +258,8 @@ export function SuperadminDashboard() {
         });
 
         // Initialize default homepage settings for this studio to prevent landing page rendering crashes
-        await setDoc(doc(db, 'settings', docId), {
+        const settingsDocId = subdomain.replace('.uioyoga.com', '').trim().toLowerCase();
+        await setDoc(doc(db, 'settings', settingsDocId), {
           heroTitle: `Santuario de Yoga ${name}`,
           heroSubtitle: `Una experiencia de bienestar integral diseñada para elevar tu energía en la comunidad ${name}.`,
           philosophyTitle: 'Nuestra Filosofía',
@@ -305,8 +306,10 @@ export function SuperadminDashboard() {
     if (!window.confirm("¿Seguro que deseas eliminar este estudio? Se perderán las configuraciones de este tenant.")) return;
     setLoading(true);
     try {
+      const studio = studios.find(s => s.id === id);
+      const cleanSub = studio?.subdomain ? studio.subdomain.replace('.uioyoga.com', '').trim().toLowerCase() : id;
       await deleteDoc(doc(db, 'studios', id));
-      await deleteDoc(doc(db, 'settings', id));
+      await deleteDoc(doc(db, 'settings', cleanSub));
       alert('Estudio eliminado.');
       await fetchStudios();
     } catch (err: any) {
