@@ -233,9 +233,12 @@ export function SuperadminDashboard() {
 
       // If an ownerId was assigned, update the owner's user document role and studioId
       if (ownerId.trim()) {
+        const selectedUser = users.find(u => u.uid === ownerId.trim());
+        const isSuperAdmin = selectedUser?.role === 'superadmin' || selectedUser?.email?.toLowerCase() === 'suqisam@gmail.com';
+        
         const ownerRef = doc(db, 'users', ownerId.trim());
         await updateDoc(ownerRef, {
-          role: 'admin',
+          role: isSuperAdmin ? 'superadmin' : 'admin',
           studioId: docId
         });
       }
