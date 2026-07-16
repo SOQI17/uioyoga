@@ -90,6 +90,7 @@ export function SuperadminDashboard() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [studioFilter, setStudioFilter] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingStudio, setEditingStudio] = useState<StudioInfo | null>(null);
   
@@ -447,6 +448,18 @@ export function SuperadminDashboard() {
                             <ExternalLink className="h-3 w-3" />
                           </Button>
                         </a>
+                        <Button
+                          variant="outline"
+                          onClick={() => setStudioFilter(studioFilter === studio.id ? null : studio.id)}
+                          className={`p-2 border rounded-xl transition-all ${
+                            studioFilter === studio.id 
+                              ? 'bg-salvia text-white border-salvia' 
+                              : 'border-salvia/30 hover:bg-salvia/10 text-salvia'
+                          }`}
+                          title="Filtrar usuarios de este estudio"
+                        >
+                          <Users className="h-3 w-3" />
+                        </Button>
                         <Button variant="outline" onClick={() => handleOpenEdit(studio)} className="p-2 border border-arena hover:bg-arena text-gris rounded-xl" title="Editar estudio">
                           <Edit2 className="h-3 w-3" />
                         </Button>
@@ -466,7 +479,15 @@ export function SuperadminDashboard() {
         <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden mb-12">
           <CardHeader className="px-8 pt-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <CardTitle className="font-serif text-2xl text-gris">Usuarios Registrados (Gestión de Roles)</CardTitle>
+              <CardTitle className="font-serif text-2xl text-gris flex flex-wrap items-center gap-2">
+                <span>Usuarios Registrados (Gestión de Roles)</span>
+                {studioFilter && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-salvia/20 px-2.5 py-0.5 text-xs font-bold text-salvia">
+                    Filtrado por: {studios.find(s => s.id === studioFilter)?.name || studioFilter}
+                    <button onClick={() => setStudioFilter(null)} className="hover:text-red-400 font-bold ml-1 cursor-pointer">×</button>
+                  </span>
+                )}
+              </CardTitle>
               <p className="text-xs text-gris/60">Gestiona roles de usuarios y sus accesos a cada estudio en tiempo real.</p>
             </div>
             {/* Search Input */}
@@ -494,10 +515,12 @@ export function SuperadminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-arena/10">
                   {users
-                    .filter(u => 
-                      u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                      u.email?.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
+                    .filter(u => {
+                      const matchesSearch = u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                            u.email?.toLowerCase().includes(searchQuery.toLowerCase());
+                      const matchesStudio = studioFilter ? u.studioId === studioFilter : true;
+                      return matchesSearch && matchesStudio;
+                    })
                     .map(u => (
                       <tr key={u.uid} className="text-gris/85 hover:bg-arena/5 transition-colors">
                         <td className="p-4 font-semibold">{u.name}</td>
