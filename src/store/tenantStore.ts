@@ -73,6 +73,12 @@ export const useTenantStore = create<TenantState>((set) => ({
         tenantExists: true,
         loadingTenant: false
       });
+      document.title = 'UIO Yoga Platform';
+      let linkIcon: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+      if (linkIcon) linkIcon.href = '/favicon.ico';
+      let linkApple: HTMLLinkElement | null = document.querySelector("link[rel='apple-touch-icon']");
+      if (linkApple) linkApple.href = '/favicon.ico';
+
       return;
     }
 
@@ -114,6 +120,29 @@ export const useTenantStore = create<TenantState>((set) => ({
           root.style.removeProperty('--color-arena-image');
           root.style.removeProperty('--color-border-override');
           root.style.removeProperty('--color-border-override-50');
+        }
+
+        // Dynamic tab title and favicon updates for shortcuts and PWA
+        if (info.name) {
+          document.title = info.name;
+        }
+        const iconUrl = settings?.teaserImage || settings?.splashImage || '/favicon.ico';
+        if (iconUrl) {
+          let linkIcon: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+          if (!linkIcon) {
+            linkIcon = document.createElement('link');
+            linkIcon.rel = 'icon';
+            document.getElementsByTagName('head')[0].appendChild(linkIcon);
+          }
+          linkIcon.href = iconUrl;
+
+          let linkApple: HTMLLinkElement | null = document.querySelector("link[rel='apple-touch-icon']");
+          if (!linkApple) {
+            linkApple = document.createElement('link');
+            linkApple.rel = 'apple-touch-icon';
+            document.getElementsByTagName('head')[0].appendChild(linkApple);
+          }
+          linkApple.href = iconUrl;
         }
 
         set({
