@@ -22,19 +22,20 @@ export function Register() {
     setError('');
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const isOwner = email.toLowerCase() === 'suqisam@gmail.com';
       // Create user document in Firestore
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         uid: userCredential.user.uid,
         name,
         email,
-        role: 'student',
-        subscriptionActive: false,
+        role: isOwner ? 'superadmin' : 'student',
+        subscriptionActive: isOwner ? true : false,
         classesRemaining: 0,
-        unlimitedClasses: false,
+        unlimitedClasses: isOwner ? true : false,
         tenantId: getTenantId(),
         createdAt: new Date().toISOString()
       });
-      navigate('/');
+      navigate(isOwner ? '/admin' : '/');
     } catch (err: any) {
       if (err.code === 'permission-denied' || err.message?.includes('Missing or insufficient permissions')) {
         setError('Error de permisos en Firebase. Asegúrate de configurar las reglas de Firestore para permitir la escritura a los usuarios.');
