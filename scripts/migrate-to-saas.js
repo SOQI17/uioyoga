@@ -28,7 +28,7 @@ if (fs.existsSync(SERVICE_ACCOUNT_PATH)) {
   });
 }
 
-const db = getFirestore('uioyoga');
+const db = getFirestore();
 
 async function runMigration() {
   console.log('Iniciando migración a base de datos multi-tenant...');
