@@ -53,6 +53,9 @@ export const useTenantStore = create<TenantState>((set) => ({
       root.style.removeProperty('--color-arena');
       root.style.removeProperty('--color-terracota');
       root.style.removeProperty('--color-gris');
+      root.style.removeProperty('--color-arena-image');
+      root.style.removeProperty('--color-border-override');
+      root.style.removeProperty('--color-border-override-50');
 
       set({
         tenantInfo: {
@@ -102,6 +105,16 @@ export const useTenantStore = create<TenantState>((set) => ({
 
         if (info.textColor) root.style.setProperty('--color-gris', info.textColor);
         else root.style.removeProperty('--color-gris');
+
+        if (info.useWoodTexture === false) {
+          root.style.setProperty('--color-arena-image', 'none');
+          root.style.setProperty('--color-border-override', info.secondaryColor || '#e5e7eb');
+          root.style.setProperty('--color-border-override-50', 'rgba(0,0,0,0.1)');
+        } else {
+          root.style.removeProperty('--color-arena-image');
+          root.style.removeProperty('--color-border-override');
+          root.style.removeProperty('--color-border-override-50');
+        }
 
         set({
           tenantInfo: info,

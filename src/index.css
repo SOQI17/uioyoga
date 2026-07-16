@@ -30,20 +30,22 @@
 
 /* Efecto Madera Satinada Realista para Tarjetas y Contenedores */
 .bg-arena {
-  background-image: linear-gradient(135deg, rgba(50, 30, 20, 0.92) 0%, rgba(20, 10, 5, 0.96) 100%), 
-                    url('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?q=80&w=1000&auto=format&fit=crop') !important;
+  background-image: var(--color-arena-image, linear-gradient(135deg, rgba(50, 30, 20, 0.92) 0%, rgba(20, 10, 5, 0.96) 100%), 
+                    url('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?q=80&w=1000&auto=format&fit=crop')) !important;
+  background-color: var(--color-arena) !important;
   background-size: cover !important;
   background-repeat: no-repeat !important;
   background-position: center !important;
-  color: #f5f5f4 !important;
+  color: var(--color-foreground, #f5f5f4) !important;
 }
 
 /* Aplicar estilo de madera selectivamente a tarjetas principales bg-white en Dashboard */
 .rounded-\[32px\].bg-white,
 .rounded-\[40px\].bg-white,
 .overflow-hidden.bg-white {
-  background-image: linear-gradient(135deg, rgba(50, 30, 20, 0.92) 0%, rgba(20, 10, 5, 0.96) 100%), 
-                    url('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?q=80&w=1000&auto=format&fit=crop') !important;
+  background-image: var(--color-arena-image, linear-gradient(135deg, rgba(50, 30, 20, 0.92) 0%, rgba(20, 10, 5, 0.96) 100%), 
+                    url('https://images.unsplash.com/photo-1533090161767-e6ffed986c88?q=80&w=1000&auto=format&fit=crop')) !important;
+  background-color: var(--color-arena) !important;
   background-size: cover !important;
   background-repeat: no-repeat !important;
   background-position: center !important;
@@ -52,10 +54,10 @@
 
 /* Ajuste de Bordes Blancos de Tarjetas a Moldura de Madera */
 .border-white {
-  border-color: #4a2e1b !important; /* Tono de roble/nogal medio para el marco de madera */
+  border-color: var(--color-border-override, #4a2e1b) !important; /* Tono de roble/nogal medio para el marco de madera */
 }
 .border-white\/50 {
-  border-color: rgba(74, 46, 27, 0.5) !important;
+  border-color: var(--color-border-override-50, rgba(74, 46, 27, 0.5)) !important;
 }
 
 /* Inputs, Modales y Sub-Tarjetas que usaban fondo blanco (mantener limpio gris oscuro para contraste) */

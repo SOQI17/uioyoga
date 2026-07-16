@@ -35,6 +35,54 @@ interface UserProfile {
   studioId?: string;
 }
 
+const COLOR_PRESETS = [
+  {
+    name: 'Madera Oscura (Default)',
+    primaryColor: '#9ca688',
+    secondaryColor: '#2e1d15',
+    accentColor: '#c9856d',
+    backgroundColor: '#09090a',
+    textColor: '#fafaf9',
+    useWoodTexture: true
+  },
+  {
+    name: 'Arena Fina (Claro)',
+    primaryColor: '#8a6240',
+    secondaryColor: '#f4ede4',
+    accentColor: '#c97d60',
+    backgroundColor: '#faf8f5',
+    textColor: '#1c1917',
+    useWoodTexture: false
+  },
+  {
+    name: 'Midnight Blue (Oscuro)',
+    primaryColor: '#3b82f6',
+    secondaryColor: '#1e293b',
+    accentColor: '#ec4899',
+    backgroundColor: '#0f172a',
+    textColor: '#f8fafc',
+    useWoodTexture: false
+  },
+  {
+    name: 'Forest Zen',
+    primaryColor: '#2e7d32',
+    secondaryColor: '#1b3a24',
+    accentColor: '#fbc02d',
+    backgroundColor: '#0c1910',
+    textColor: '#f1f8e9',
+    useWoodTexture: false
+  },
+  {
+    name: 'Terracota Cálido',
+    primaryColor: '#c2410c',
+    secondaryColor: '#fdf6e2',
+    accentColor: '#ea580c',
+    backgroundColor: '#faf6eb',
+    textColor: '#292524',
+    useWoodTexture: false
+  }
+];
+
 export function SuperadminDashboard() {
   const [studios, setStudios] = useState<StudioInfo[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -56,6 +104,7 @@ export function SuperadminDashboard() {
   const [accentColor, setAccentColor] = useState('#c9856d');
   const [backgroundColor, setBackgroundColor] = useState('#09090a');
   const [textColor, setTextColor] = useState('#fafaf9');
+  const [useWoodTexture, setUseWoodTexture] = useState(true);
 
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -113,6 +162,7 @@ export function SuperadminDashboard() {
     setAccentColor('#c9856d');
     setBackgroundColor('#09090a');
     setTextColor('#fafaf9');
+    setUseWoodTexture(true);
     setModalOpen(true);
   };
 
@@ -131,6 +181,7 @@ export function SuperadminDashboard() {
     setAccentColor(studio.accentColor || '#c9856d');
     setBackgroundColor(studio.backgroundColor || '#09090a');
     setTextColor(studio.textColor || '#fafaf9');
+    setUseWoodTexture(studio.useWoodTexture !== false);
     setModalOpen(true);
   };
 
@@ -153,6 +204,7 @@ export function SuperadminDashboard() {
       accentColor,
       backgroundColor,
       textColor,
+      useWoodTexture,
       updatedAt: new Date().toISOString()
     };
 
@@ -479,65 +531,109 @@ export function SuperadminDashboard() {
                       className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner"
                     />
                   </div>
-                </div>
-
-                {/* Branding Personalizado (Colores) */}
-                <div className="border-t border-arena/20 pt-4 space-y-3">
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-salvia">Personalización de Colores (Marca Blanca)</h4>
+                            {/* Branding Personalizado (Colores) */}
+                <div className="border-t border-arena/20 pt-4 space-y-4">
+                  <h4 className="text-[11px] font-bold uppercase tracking-widest text-salvia">Personalización de Marca Blanca (Tema y Colores)</h4>
                   
-                  <div className="grid grid-cols-5 gap-2">
-                    <div className="flex flex-col items-center gap-1">
-                      <Label htmlFor="color-salvia" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Principal</Label>
-                      <input
-                        id="color-salvia"
-                        type="color"
-                        value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
-                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
-                      />
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <Label htmlFor="color-arena" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Secundario</Label>
-                      <input
-                        id="color-arena"
-                        type="color"
-                        value={secondaryColor}
-                        onChange={(e) => setSecondaryColor(e.target.value)}
-                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
-                      />
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <Label htmlFor="color-terracota" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Acento</Label>
-                      <input
-                        id="color-terracota"
-                        type="color"
-                        value={accentColor}
-                        onChange={(e) => setAccentColor(e.target.value)}
-                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
-                      />
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <Label htmlFor="color-marfil" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Fondo</Label>
-                      <input
-                        id="color-marfil"
-                        type="color"
-                        value={backgroundColor}
-                        onChange={(e) => setBackgroundColor(e.target.value)}
-                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
-                      />
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <Label htmlFor="color-gris" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Texto</Label>
-                      <input
-                        id="color-gris"
-                        type="color"
-                        value={textColor}
-                        onChange={(e) => setTextColor(e.target.value)}
-                        className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
-                      />
+                  {/* Presets de Color */}
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-bold uppercase tracking-wider text-gris opacity-70">Ajustes Rápidos (Paletas de Colores)</Label>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {COLOR_PRESETS.map((preset) => (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          onClick={() => {
+                            setPrimaryColor(preset.primaryColor);
+                            setSecondaryColor(preset.secondaryColor);
+                            setAccentColor(preset.accentColor);
+                            setBackgroundColor(preset.backgroundColor);
+                            setTextColor(preset.textColor);
+                            setUseWoodTexture(preset.useWoodTexture);
+                          }}
+                          className="px-2.5 py-1 text-[9px] font-bold rounded-lg border hover:bg-salvia hover:text-white transition-colors cursor-pointer text-gris bg-arena/40"
+                          style={{ borderColor: preset.primaryColor }}
+                        >
+                          {preset.name}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </div>
+
+                  {/* Textura */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      id="useWoodTexture"
+                      type="checkbox"
+                      checked={useWoodTexture}
+                      onChange={(e) => setUseWoodTexture(e.target.checked)}
+                      className="rounded border-none bg-white h-4 w-4 cursor-pointer accent-salvia"
+                    />
+                    <Label htmlFor="useWoodTexture" className="text-[10px] font-bold uppercase tracking-widest text-gris opacity-80 cursor-pointer">Habilitar Textura de Madera en Tarjetas</Label>
+                  </div>
+
+                  {/* Selector Manual */}
+                  <div className="space-y-1.5 pt-1">
+                    <Label className="text-[9px] font-bold uppercase tracking-wider text-gris opacity-70">Personalización Manual de Colores</Label>
+                    <div className="grid grid-cols-5 gap-2">
+                      <div className="flex flex-col items-center gap-1">
+                        <Label htmlFor="color-salvia" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Principal</Label>
+                        <input
+                          id="color-salvia"
+                          type="color"
+                          value={primaryColor}
+                          onChange={(e) => setPrimaryColor(e.target.value)}
+                          className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                          title="Color principal de botones y selecciones"
+                        />
+                      </div>
+                      <div className="flex flex-col items-center gap-1">
+                        <Label htmlFor="color-arena" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Tarjetas</Label>
+                        <input
+                          id="color-arena"
+                          type="color"
+                          value={secondaryColor}
+                          onChange={(e) => setSecondaryColor(e.target.value)}
+                          className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                          title="Color secundario de las tarjetas principales"
+                        />
+                      </div>
+                      <div className="flex flex-col items-center gap-1">
+                        <Label htmlFor="color-terracota" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Acentos</Label>
+                        <input
+                          id="color-terracota"
+                          type="color"
+                          value={accentColor}
+                          onChange={(e) => setAccentColor(e.target.value)}
+                          className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                          title="Color de títulos destacados y llamadas a la acción"
+                        />
+                      </div>
+                      <div className="flex flex-col items-center gap-1">
+                        <Label htmlFor="color-marfil" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Fondo</Label>
+                        <input
+                          id="color-marfil"
+                          type="color"
+                          value={backgroundColor}
+                          onChange={(e) => setBackgroundColor(e.target.value)}
+                          className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                          title="Color de fondo de las páginas de la plataforma"
+                        />
+                      </div>
+                      <div className="flex flex-col items-center gap-1">
+                        <Label htmlFor="color-gris" className="text-[8px] font-bold uppercase text-gris opacity-70 text-center">Letra</Label>
+                        <input
+                          id="color-gris"
+                          type="color"
+                          value={textColor}
+                          onChange={(e) => setTextColor(e.target.value)}
+                          className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                          title="Color de lectura para el texto"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>       </div>
 
                 <div className="flex justify-end gap-3 pt-6">
                   <Button
