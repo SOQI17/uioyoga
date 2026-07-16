@@ -75,28 +75,39 @@ export const useAuthStore = create<AuthState>((set) => ({
               }
             }
             
-            // Auto-demote alexisguerra9577@gmail.com if they got admin role by mistake
-            if (data.email?.toLowerCase() === 'alexisguerra9577@gmail.com' && data.role === 'admin') {
-              data.role = 'student';
-              try {
-                await setDoc(doc(db, 'users', user.uid), { role: 'student' }, { merge: true });
-              } catch (writeErr) {
-                console.warn("Could not demote user role in Firestore:", writeErr);
+            // Auto-promote alexisguerra9577@gmail.com to admin of kukutyoga
+            if (data.email?.toLowerCase() === 'alexisguerra9577@gmail.com') {
+              let updated = false;
+              if (data.role !== 'admin') {
+                data.role = 'admin';
+                updated = true;
+              }
+              if (data.tenantId !== 'kukutyoga') {
+                data.tenantId = 'kukutyoga';
+                updated = true;
+              }
+              if (updated) {
+                try {
+                  await setDoc(doc(db, 'users', user.uid), { role: 'admin', tenantId: 'kukutyoga' }, { merge: true });
+                } catch (writeErr) {
+                  console.warn("Could not promote alexisguerra9577@gmail.com to admin in Firestore:", writeErr);
+                }
               }
             }
 
             set({ userData: data });
           } else {
             // User exists in Firebase Auth but has no document in Firestore (e.g., Google login first time)
+            const isKukutAdmin = user.email?.toLowerCase() === 'alexisguerra9577@gmail.com';
             const fallbackUserData: UserData = {
               uid: user.uid,
               name: user.displayName || user.email?.split('@')[0] || 'Usuario',
               email: user.email || '',
-              role: isSuperAdminEmail ? 'superadmin' : 'student',
+              role: isSuperAdminEmail ? 'superadmin' : (isKukutAdmin ? 'admin' : 'student'),
               subscriptionActive: false,
               classesRemaining: 0,
               unlimitedClasses: false,
-              tenantId: isSuperAdminEmail ? undefined : getTenantId(),
+              tenantId: isSuperAdminEmail ? undefined : (isKukutAdmin ? 'kukutyoga' : getTenantId()),
             };
             set({ userData: fallbackUserData });
 
