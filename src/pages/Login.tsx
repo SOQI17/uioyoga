@@ -38,7 +38,9 @@ export function Login() {
 
       if (userDoc.exists()) {
         const uData = userDoc.data();
-        if (!isOwner && uData.tenantId && uData.tenantId !== getTenantId()) {
+        const cleanUserTenant = uData.tenantId?.replace('.uioyoga.com', '').toLowerCase();
+        const cleanDetectedTenant = getTenantId()?.replace('.uioyoga.com', '').toLowerCase();
+        if (!isOwner && cleanUserTenant && cleanUserTenant !== cleanDetectedTenant) {
           await auth.signOut();
           setError('Tu cuenta pertenece a otro estudio de yoga.');
           setLoading(false);
@@ -82,7 +84,9 @@ export function Login() {
 
       if (userDoc.exists()) {
         const uData = userDoc.data();
-        if (!isOwner && uData.tenantId && uData.tenantId !== getTenantId()) {
+        const cleanUserTenant = uData.tenantId?.replace('.uioyoga.com', '').toLowerCase();
+        const cleanDetectedTenant = getTenantId()?.replace('.uioyoga.com', '').toLowerCase();
+        if (!isOwner && cleanUserTenant && cleanUserTenant !== cleanDetectedTenant) {
           await auth.signOut();
           setError('Tu cuenta pertenece a otro estudio de yoga.');
           return;
