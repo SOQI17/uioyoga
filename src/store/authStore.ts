@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, db, getTenantId } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export interface UserData {
   uid: string;
@@ -44,6 +44,18 @@ export const useAuthStore = create<AuthState>((set) => ({
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           const isSuperAdminEmail = user.email?.toLowerCase() === 'suqisam@gmail.com';
           
+          // Check if this user is assigned as owner of any studio
+          let assignedStudioId: string | null = null;
+          try {
+            const studiosQuery = query(collection(db, 'studios'), where('ownerEmail', '==', user.email?.toLowerCase()));
+            const studiosSnap = await getDocs(studiosQuery);
+            if (!studiosSnap.empty) {
+              assignedStudioId = studiosSnap.docs[0].id;
+            }
+          } catch (err) {
+            console.warn("Could not query studios for owner assignment:", err);
+          }
+
           if (userDoc.exists()) {
             const data = userDoc.data() as UserData;
             
@@ -58,22 +70,22 @@ export const useAuthStore = create<AuthState>((set) => ({
               }
             }
 
-            // Auto-promote alexisguerra9577@gmail.com to admin of kukutyoga
-            if (data.email?.toLowerCase() === 'alexisguerra9577@gmail.com') {
+            // Auto-promote user to admin of their assigned studio
+            if (assignedStudioId && data.role !== 'superadmin') {
               let updated = false;
               if (data.role !== 'admin') {
                 data.role = 'admin';
                 updated = true;
               }
-              if (data.tenantId !== 'kukutyoga') {
-                data.tenantId = 'kukutyoga';
+              if (data.tenantId !== assignedStudioId) {
+                data.tenantId = assignedStudioId;
                 updated = true;
               }
               if (updated) {
                 try {
-                  await setDoc(doc(db, 'users', user.uid), { role: 'admin', tenantId: 'kukutyoga' }, { merge: true });
+                  await setDoc(doc(db, 'users', user.uid), { role: 'admin', tenantId: assignedStudioId }, { merge: true });
                 } catch (writeErr) {
-                  console.warn("Could not promote alexisguerra9577@gmail.com to admin in Firestore:", writeErr);
+                  console.warn("Could not promote user to studio admin in Firestore:", writeErr);
                 }
               }
             }
@@ -98,16 +110,15 @@ export const useAuthStore = create<AuthState>((set) => ({
             set({ userData: data });
           } else {
             // User exists in Firebase Auth but has no document in Firestore (e.g., Google login first time)
-            const isKukutAdmin = user.email?.toLowerCase() === 'alexisguerra9577@gmail.com';
             const fallbackUserData: UserData = {
               uid: user.uid,
               name: user.displayName || user.email?.split('@')[0] || 'Usuario',
               email: user.email || '',
-              role: isSuperAdminEmail ? 'superadmin' : (isKukutAdmin ? 'admin' : 'student'),
+              role: isSuperAdminEmail ? 'superadmin' : (assignedStudioId ? 'admin' : 'student'),
               subscriptionActive: false,
               classesRemaining: 0,
               unlimitedClasses: false,
-              tenantId: isSuperAdminEmail ? undefined : (isKukutAdmin ? 'kukutyoga' : getTenantId()),
+              tenantId: isSuperAdminEmail ? undefined : (assignedStudioId ? assignedStudioId : getTenantId()),
             };
             set({ userData: fallbackUserData });
 

@@ -20,11 +20,13 @@ interface StudioInfo {
   subscriptionExpiry?: string;
   trialEndsAt?: string;
   ownerId?: string;
+  ownerEmail?: string;
   primaryColor?: string;
   secondaryColor?: string;
   accentColor?: string;
   backgroundColor?: string;
   textColor?: string;
+  useWoodTexture?: boolean;
 }
 
 interface UserProfile {
@@ -99,6 +101,7 @@ export function SuperadminDashboard() {
   const [subscriptionExpiry, setSubscriptionExpiry] = useState('');
   const [trialEndsAt, setTrialEndsAt] = useState('');
   const [ownerId, setOwnerId] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#9ca688');
   const [secondaryColor, setSecondaryColor] = useState('#2e1d15');
   const [accentColor, setAccentColor] = useState('#c9856d');
@@ -157,6 +160,7 @@ export function SuperadminDashboard() {
     setSubscriptionExpiry(expiryDate.toISOString().slice(0, 10));
 
     setOwnerId('');
+    setOwnerEmail('');
     setPrimaryColor('#9ca688');
     setSecondaryColor('#2e1d15');
     setAccentColor('#c9856d');
@@ -176,6 +180,7 @@ export function SuperadminDashboard() {
     setSubscriptionExpiry(studio.subscriptionExpiry ? studio.subscriptionExpiry.slice(0, 10) : '');
     setTrialEndsAt(studio.trialEndsAt ? studio.trialEndsAt.slice(0, 10) : '');
     setOwnerId(studio.ownerId || '');
+    setOwnerEmail(studio.ownerEmail || '');
     setPrimaryColor(studio.primaryColor || '#9ca688');
     setSecondaryColor(studio.secondaryColor || '#2e1d15');
     setAccentColor(studio.accentColor || '#c9856d');
@@ -199,6 +204,7 @@ export function SuperadminDashboard() {
       subscriptionExpiry: subscriptionExpiry ? new Date(subscriptionExpiry).toISOString() : '',
       trialEndsAt: trialEndsAt ? new Date(trialEndsAt).toISOString() : '',
       ownerId: ownerId.trim(),
+      ownerEmail: ownerEmail.trim().toLowerCase(),
       primaryColor,
       secondaryColor,
       accentColor,
@@ -231,16 +237,25 @@ export function SuperadminDashboard() {
         });
       }
 
-      // If an ownerId was assigned, update the owner's user document role and studioId
-      if (ownerId.trim()) {
-        const selectedUser = users.find(u => u.uid === ownerId.trim());
-        const isSuperAdmin = selectedUser?.role === 'superadmin' || selectedUser?.email?.toLowerCase() === 'suqisam@gmail.com';
-        
-        const ownerRef = doc(db, 'users', ownerId.trim());
-        await updateDoc(ownerRef, {
-          role: isSuperAdmin ? 'superadmin' : 'admin',
-          studioId: docId
-        });
+      // If an ownerEmail was assigned, update the owner's user document role and studioId in Firestore
+      if (ownerEmail.trim()) {
+        const lowercaseEmail = ownerEmail.trim().toLowerCase();
+        try {
+          const userQuery = query(collection(db, 'users'), where('email', '==', lowercaseEmail));
+          const userSnap = await getDocs(userQuery);
+          if (!userSnap.empty) {
+            const userDocRef = doc(db, 'users', userSnap.docs[0].id);
+            const userData = userSnap.docs[0].data();
+            const isSuperAdmin = userData.role === 'superadmin' || lowercaseEmail === 'suqisam@gmail.com';
+            
+            await updateDoc(userDocRef, {
+              role: isSuperAdmin ? 'superadmin' : 'admin',
+              studioId: docId
+            });
+          }
+        } catch (err) {
+          console.warn("Could not auto-link owner role by email:", err);
+        }
       }
 
       alert('Estudio guardado correctamente.');
@@ -498,18 +513,14 @@ export function SuperadminDashboard() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="owner" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Asignar Owner (UID del Admin)</Label>
-                    <select
-                      id="owner"
-                      value={ownerId}
-                      onChange={(e) => setOwnerId(e.target.value)}
-                      className="flex h-10 w-full rounded-2xl border-none bg-white px-4 py-2 text-sm shadow-inner focus:outline-none"
-                    >
-                      <option value="">-- Ninguno / Selecciona Usuario --</option>
-                      {users.map(u => (
-                        <option key={u.uid} value={u.uid}>{u.name} ({u.email}) [{u.role}]</option>
-                      ))}
-                    </select>
+                    <Label htmlFor="ownerEmail" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Email del Administrador (Dueño)</Label>
+                    <Input
+                      id="ownerEmail"
+                      value={ownerEmail}
+                      onChange={(e) => setOwnerEmail(e.target.value)}
+                      placeholder="ej: admin@estudio.com"
+                      className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner"
+                    />
                   </div>
                 </div>
 
