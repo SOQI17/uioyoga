@@ -61,8 +61,12 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     : false;
 
   if (isSuspended || isExpired || isTrialExpired) {
-    const blockType = isSuspended ? 'suspended' : 'expired';
-    return <Navigate to="/suspended" state={{ type: blockType }} replace />;
+    const isStudioAdmin = userData.role === 'admin';
+    const isDashboard = location.pathname === '/dashboard';
+    if (!(isStudioAdmin && isDashboard)) {
+      const blockType = isSuspended ? 'suspended' : 'expired';
+      return <Navigate to="/suspended" state={{ type: blockType }} replace />;
+    }
   }
 
   // 6. Role check

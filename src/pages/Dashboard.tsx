@@ -1,6 +1,6 @@
 import { useAuthStore, UserData } from '../store/authStore';
 import { signOut } from 'firebase/auth';
-import { auth, db, getTenantId } from '../lib/firebase';
+import { auth, db, getTenantId, storage } from '../lib/firebase';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Label } from '../components/ui/Label';
@@ -8,12 +8,25 @@ import { Input } from '../components/ui/Input';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy, deleteDoc, doc, setDoc, where, addDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, deleteDoc, doc, setDoc, where, addDoc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useTenantStore } from '../store/tenantStore';
 import { AdminClassForm } from '../components/AdminClassForm';
 import { AdminRetreatForm } from '../components/AdminRetreatForm';
 import { AdminHomeSettings } from '../components/AdminHomeSettings';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { 
+  Copy, 
+  Check, 
+  ShieldAlert, 
+  CreditCard, 
+  FileText, 
+  CheckCircle2, 
+  XCircle, 
+  AlertCircle,
+  Info
+} from 'lucide-react';
 
 interface YogaClass {
   id: string;
@@ -89,7 +102,155 @@ export function Dashboard() {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'classes' | 'retreats' | 'home' | 'users' | 'subscriptions'>('classes');
+  const [activeTab, setActiveTab] = useState<'classes' | 'retreats' | 'home' | 'users' | 'subscriptions' | 'saas_billing'>('classes');
+
+  const { tenantInfo } = useTenantStore();
+
+  // SaaS Billing States
+  const [billingConfig, setBillingConfig] = useState<any>(null);
+  const [billingHistory, setBillingHistory] = useState<any[]>([]);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [saasPlan, setSaasPlan] = useState<'basic' | 'premium' | 'enterprise'>('basic');
+  const [reportMethod, setReportMethod] = useState<'upload' | 'whatsapp'>('upload');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferDate, setTransferDate] = useState(new Date().toISOString().split('T')[0]);
+  const [transferReference, setTransferReference] = useState('');
+  const [transferRemarks, setTransferRemarks] = useState('');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [saasError, setSaasError] = useState('');
+  const [saasSuccess, setSaasSuccess] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const isSuspended = tenantInfo?.status === 'suspended';
+  const isExpired = tenantInfo?.subscriptionExpiry 
+    ? new Date(tenantInfo.subscriptionExpiry) < new Date() 
+    : false;
+  const isTrialExpired = tenantInfo?.status === 'trial' && tenantInfo?.trialEndsAt
+    ? new Date(tenantInfo.trialEndsAt) < new Date()
+    : false;
+  const isSaaSSuspended = isSuspended || isExpired || isTrialExpired;
+
+  useEffect(() => {
+    if (isSaaSSuspended && activeTab !== 'saas_billing') {
+      setActiveTab('saas_billing');
+    }
+  }, [isSaaSSuspended, activeTab]);
+
+  const loadSaaSData = async () => {
+    if (!tenantInfo) return;
+    setBillingLoading(true);
+    setSaasError('');
+    try {
+      const configDoc = await getDoc(doc(db, 'settings', 'platform_billing'));
+      if (configDoc.exists()) {
+        setBillingConfig(configDoc.data());
+      } else {
+        setBillingConfig({
+          bankName: 'Banco Pichincha',
+          bankAccountHolder: 'UIO YOGA S.A.S',
+          bankAccountNumber: '2206789456',
+          bankAccountType: 'Corriente',
+          bankTaxId: '1793456789001',
+          priceBasic: 30,
+          pricePremium: 60,
+          priceEnterprise: 120
+        });
+      }
+
+      const q = query(
+        collection(db, 'payments'),
+        where('studioId', '==', tenantInfo.id),
+        orderBy('createdAt', 'desc')
+      );
+      const snap = await getDocs(q);
+      const history = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setBillingHistory(history);
+    } catch (err: any) {
+      console.error("Error loading SaaS billing data:", err);
+      setSaasError('Error al cargar la información de facturación o historial.');
+    } finally {
+      setBillingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'saas_billing' && tenantInfo) {
+      loadSaaSData();
+      if (tenantInfo.subscriptionPlan) {
+        setSaasPlan(tenantInfo.subscriptionPlan as any);
+      }
+    }
+  }, [activeTab, tenantInfo]);
+
+  const handleReportPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenantInfo) return;
+    setUploadingReceipt(true);
+    setSaasError('');
+    setSaasSuccess('');
+    
+    try {
+      let receiptUrl = '';
+      let amount = parseFloat(transferAmount);
+      
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error('El monto ingresado debe ser mayor a 0.');
+      }
+
+      if (reportMethod === 'upload') {
+        if (!receiptFile) {
+          throw new Error('Por favor selecciona una foto o PDF del comprobante.');
+        }
+        if (!transferReference.trim()) {
+          throw new Error('Por favor ingresa el número de referencia de la transferencia.');
+        }
+        
+        const fileExt = receiptFile.name.split('.').pop();
+        const storageRef = ref(storage, `receipts/${tenantInfo.subdomain}/${Date.now()}_receipt.${fileExt}`);
+        await uploadBytes(storageRef, receiptFile);
+        receiptUrl = await getDownloadURL(storageRef);
+      }
+
+      const paymentData: any = {
+        studioId: tenantInfo.id,
+        subdomain: tenantInfo.subdomain,
+        subscriptionPlan: saasPlan,
+        amount,
+        transferDate,
+        referenceNumber: reportMethod === 'upload' ? transferReference : 'WhatsApp/Email-Ref',
+        remarks: transferRemarks,
+        status: 'pending',
+        receiptUploaded: reportMethod === 'upload',
+        createdAt: new Date().toISOString()
+      };
+
+      if (receiptUrl) {
+        paymentData.receiptUrl = receiptUrl;
+      }
+
+      await addDoc(collection(db, 'payments'), paymentData);
+
+      setSaasSuccess('¡Pago reportado con éxito! El administrador revisará y activará tu cuenta.');
+      setTransferAmount('');
+      setTransferReference('');
+      setTransferRemarks('');
+      setReceiptFile(null);
+      loadSaaSData();
+    } catch (err: any) {
+      console.error("Error reporting payment:", err);
+      setSaasError(err.message || 'Error al guardar el reporte de pago.');
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
+  const handleCopyAccountNumber = () => {
+    const acc = billingConfig?.bankAccountNumber || '2206789456';
+    navigator.clipboard.writeText(acc);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const fetchClasses = async () => {
     if (!userData || userData.role !== 'admin') return;
@@ -785,45 +946,57 @@ export function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             className="flex overflow-x-auto md:flex-wrap flex-nowrap gap-2 border-b border-arena/30 pb-4 md:pb-6 mb-10 text-xs font-bold uppercase tracking-widest no-scrollbar"
           >
+            {!isSaaSSuspended && (
+              <>
+                <button
+                  onClick={() => setActiveTab('classes')}
+                  className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                    activeTab === 'classes' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                  }`}
+                >
+                  Horarios & Clases
+                </button>
+                <button
+                  onClick={() => setActiveTab('retreats')}
+                  className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                    activeTab === 'retreats' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                  }`}
+                >
+                  Retiros
+                </button>
+                <button
+                  onClick={() => setActiveTab('home')}
+                  className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                    activeTab === 'home' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                  }`}
+                >
+                  Personalizar Inicio
+                </button>
+                <button
+                  onClick={() => setActiveTab('users')}
+                  className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                    activeTab === 'users' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                  }`}
+                >
+                  Colaboradores
+                </button>
+                <button
+                  onClick={() => setActiveTab('subscriptions')}
+                  className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                    activeTab === 'subscriptions' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                  }`}
+                >
+                  Suscripciones & Caja
+                </button>
+              </>
+            )}
             <button
-              onClick={() => setActiveTab('classes')}
+              onClick={() => setActiveTab('saas_billing')}
               className={`rounded-full px-6 py-3 transition-all shrink-0 ${
-                activeTab === 'classes' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                activeTab === 'saas_billing' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
               }`}
             >
-              Horarios & Clases
-            </button>
-            <button
-              onClick={() => setActiveTab('retreats')}
-              className={`rounded-full px-6 py-3 transition-all shrink-0 ${
-                activeTab === 'retreats' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
-              }`}
-            >
-              Retiros
-            </button>
-            <button
-              onClick={() => setActiveTab('home')}
-              className={`rounded-full px-6 py-3 transition-all shrink-0 ${
-                activeTab === 'home' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
-              }`}
-            >
-              Personalizar Inicio
-            </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`rounded-full px-6 py-3 transition-all shrink-0 ${
-                activeTab === 'users' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
-              }`}
-            >
-              Colaboradores
-            </button>
-            <button
-              onClick={() => setActiveTab('subscriptions')}
-              className={`rounded-full px-6 py-3 transition-all shrink-0 ${
-                activeTab === 'subscriptions' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
-              }`}
-            >
-              Suscripciones & Caja
+              Suscripción SaaS
             </button>
           </motion.div>
         )}
@@ -1349,6 +1522,340 @@ export function Dashboard() {
                       )}
                     </CardContent>
                   </Card>
+                )}
+
+                {activeTab === 'saas_billing' && (
+                  <div className="space-y-8">
+                    {/* Mensaje de Advertencia si está Suspendido o Vencido */}
+                    {isSaaSSuspended && (
+                      <Card className="rounded-[32px] border-[8px] border-white bg-red-50 shadow-xl overflow-hidden p-6 border-red-200">
+                        <div className="flex gap-4 items-start">
+                          <ShieldAlert className="h-10 w-10 text-red-500 shrink-0" />
+                          <div>
+                            <h4 className="font-serif text-xl text-red-800 font-semibold mb-1">
+                              {isSuspended ? 'Cuenta Suspendida' : 'Suscripción Vencida'}
+                            </h4>
+                            <p className="text-xs text-red-800/80 leading-relaxed">
+                              {isSuspended 
+                                ? 'Tu cuenta ha sido temporalmente suspendida. Por favor realiza la transferencia bancaria y reporta el pago para que el administrador de la plataforma la reactive.'
+                                : 'Tu suscripción o periodo de prueba ha finalizado. Por favor realiza la transferencia bancaria y reporta el pago a continuación para reactivar el sistema y todas sus funciones de reservas y gestión.'}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+
+                    {/* Columnas del Panel */}
+                    <div className="grid gap-8 lg:grid-cols-2">
+                      
+                      {/* Columna Izquierda: Información Bancaria e Informe de Pago */}
+                      <div className="space-y-8">
+                        
+                        {/* Información Bancaria */}
+                        <Card className="rounded-[32px] border-[8px] border-white bg-arena shadow-xl overflow-hidden">
+                          <CardHeader className="px-6 pt-6 pb-2">
+                            <CardTitle className="font-serif text-xl text-salvia flex items-center gap-2">
+                              <CreditCard className="h-5 w-5" /> Información Bancaria de Pago
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="px-6 pb-6 text-sm text-gris/85 space-y-3">
+                            <p className="text-xs text-gris/60 mb-2 leading-relaxed">
+                              Realiza tu transferencia a la cuenta de la plataforma. Guarda tu comprobante en PDF o Imagen para reportarlo:
+                            </p>
+                            <div className="bg-white/60 p-4 rounded-2xl border border-arena/30 space-y-2.5">
+                              <div className="flex justify-between border-b border-arena/20 pb-1.5">
+                                <span className="opacity-60 text-xs uppercase tracking-wider font-semibold">Banco</span>
+                                <span className="font-bold text-gris">{billingConfig?.bankName || 'Banco Pichincha'}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-arena/20 pb-1.5">
+                                <span className="opacity-60 text-xs uppercase tracking-wider font-semibold">Titular</span>
+                                <span className="font-semibold text-gris">{billingConfig?.bankAccountHolder || 'UIO YOGA S.A.S'}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-arena/20 pb-1.5 items-center">
+                                <span className="opacity-60 text-xs uppercase tracking-wider font-semibold">Nro. de Cuenta</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-gris text-base">{billingConfig?.bankAccountNumber || '2206789456'}</span>
+                                  <button
+                                    type="button"
+                                    onClick={handleCopyAccountNumber}
+                                    className="p-1.5 hover:bg-arena/55 rounded-lg text-salvia transition-colors cursor-pointer"
+                                    title="Copiar número de cuenta"
+                                  >
+                                    {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="flex justify-between border-b border-arena/20 pb-1.5">
+                                <span className="opacity-60 text-xs uppercase tracking-wider font-semibold">Tipo de Cuenta</span>
+                                <span className="font-semibold text-gris capitalize">{billingConfig?.bankAccountType || 'Corriente'}</span>
+                              </div>
+                              <div className="flex justify-between pt-0.5">
+                                <span className="opacity-60 text-xs uppercase tracking-wider font-semibold">Identificación / RUC</span>
+                                <span className="font-mono font-bold text-gris">{billingConfig?.bankTaxId || '1793456789001'}</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Formulario de Reporte */}
+                        <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden">
+                          <CardHeader className="px-6 pt-6 pb-2">
+                            <CardTitle className="font-serif text-xl text-gris">Reportar Transferencia</CardTitle>
+                          </CardHeader>
+                          <CardContent className="px-6 pb-6">
+                            <form onSubmit={handleReportPayment} className="space-y-4">
+                              {saasError && (
+                                <div className="p-3 bg-red-500/10 text-red-500 text-xs rounded-xl flex items-center gap-2 border border-red-500/20">
+                                  <AlertCircle className="h-4 w-4 shrink-0" />
+                                  <span>{saasError}</span>
+                                </div>
+                              )}
+                              {saasSuccess && (
+                                <div className="p-3 bg-green-500/10 text-green-600 text-xs rounded-xl flex items-center gap-2 border border-green-500/20">
+                                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                                  <span>{saasSuccess}</span>
+                                </div>
+                              )}
+
+                              {/* Selector del Método */}
+                              <div className="space-y-1.5">
+                                <Label className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Método de Envío del Comprobante</Label>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => setReportMethod('upload')}
+                                    className={`py-2.5 px-3 text-xs font-bold uppercase tracking-widest rounded-full transition-all border cursor-pointer ${
+                                      reportMethod === 'upload'
+                                        ? 'bg-salvia text-white border-salvia shadow-sm'
+                                        : 'bg-transparent text-gris/60 border-gris/10 hover:bg-arena/20'
+                                    }`}
+                                  >
+                                    Subir Comprobante
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setReportMethod('whatsapp')}
+                                    className={`py-2.5 px-3 text-xs font-bold uppercase tracking-widest rounded-full transition-all border cursor-pointer ${
+                                      reportMethod === 'whatsapp'
+                                        ? 'bg-salvia text-white border-salvia shadow-sm'
+                                        : 'bg-transparent text-gris/60 border-gris/10 hover:bg-arena/20'
+                                    }`}
+                                  >
+                                    WhatsApp / Correo
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Plan a Renovar */}
+                              <div className="space-y-1">
+                                <Label htmlFor="saasPlan" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Plan a Contratar/Renovar</Label>
+                                <select
+                                  id="saasPlan"
+                                  value={saasPlan}
+                                  onChange={(e: any) => setSaasPlan(e.target.value)}
+                                  className="flex h-10 w-full rounded-2xl border-none bg-arena/35 px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-salvia"
+                                >
+                                  <option value="basic">Plan Básico (${billingConfig?.priceBasic || 30.00}/mes)</option>
+                                  <option value="premium">Plan Premium (${billingConfig?.pricePremium || 60.00}/mes)</option>
+                                  <option value="enterprise">Plan Enterprise (${billingConfig?.priceEnterprise || 120.00}/mes)</option>
+                                </select>
+                              </div>
+
+                              {/* Monto */}
+                              <div className="space-y-1">
+                                <Label htmlFor="transferAmount" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Monto Transferido ($ USD)</Label>
+                                <Input
+                                  id="transferAmount"
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  required
+                                  value={transferAmount}
+                                  onChange={(e) => setTransferAmount(e.target.value)}
+                                  className="rounded-2xl border-none bg-arena/35 shadow-inner focus:ring-1 focus:ring-salvia"
+                                />
+                              </div>
+
+                              {/* Fecha */}
+                              <div className="space-y-1">
+                                <Label htmlFor="transferDate" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Fecha de Transferencia</Label>
+                                <Input
+                                  id="transferDate"
+                                  type="date"
+                                  required
+                                  value={transferDate}
+                                  onChange={(e) => setTransferDate(e.target.value)}
+                                  className="rounded-2xl border-none bg-arena/35 shadow-inner focus:ring-1 focus:ring-salvia"
+                                />
+                              </div>
+
+                              {/* Campos Específicos del Método 1 */}
+                              {reportMethod === 'upload' ? (
+                                <>
+                                  <div className="space-y-1">
+                                    <Label htmlFor="transferReference" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Número de Referencia de Transacción</Label>
+                                    <Input
+                                      id="transferReference"
+                                      type="text"
+                                      placeholder="Ej. 123456789"
+                                      required
+                                      value={transferReference}
+                                      onChange={(e) => setTransferReference(e.target.value)}
+                                      className="rounded-2xl border-none bg-arena/35 shadow-inner focus:ring-1 focus:ring-salvia"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <Label htmlFor="receiptFile" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Archivo del Comprobante (Imagen o PDF)</Label>
+                                    <input
+                                      id="receiptFile"
+                                      type="file"
+                                      accept="image/*,application/pdf"
+                                      required
+                                      onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                                      className="block w-full text-xs text-gris/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:tracking-widest file:bg-salvia/10 file:text-salvia hover:file:bg-salvia/20"
+                                    />
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="p-3 bg-arena/40 rounded-2xl border border-arena/20 text-xs text-gris/70 leading-relaxed">
+                                  <strong>Nota:</strong> Usando esta opción, indicas que ya realizaste la transferencia y nos enviaste el comprobante por WhatsApp o correo. El administrador revisará la cuenta bancaria de forma manual para activar tu suscripción.
+                                </div>
+                              )}
+
+                              {/* Observaciones */}
+                              <div className="space-y-1">
+                                <Label htmlFor="transferRemarks" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Observaciones (Opcional)</Label>
+                                <textarea
+                                  id="transferRemarks"
+                                  rows={2}
+                                  placeholder="Escribe alguna nota aclaratoria si lo deseas..."
+                                  value={transferRemarks}
+                                  onChange={(e) => setTransferRemarks(e.target.value)}
+                                  className="flex w-full rounded-2xl border-none bg-arena/35 px-4 py-3 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-salvia"
+                                />
+                              </div>
+
+                              <Button
+                                type="submit"
+                                disabled={uploadingReceipt}
+                                className="w-full rounded-full bg-salvia py-6 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md cursor-pointer"
+                              >
+                                {uploadingReceipt ? 'Enviando Reporte...' : 'Reportar Pago'}
+                              </Button>
+                            </form>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Columna Derecha: Estado de Suscripción e Historial */}
+                      <div className="space-y-8">
+                        
+                        {/* Estado Actual */}
+                        <Card className="rounded-[32px] border-[8px] border-white bg-arena/25 shadow-xl overflow-hidden">
+                          <CardHeader className="px-6 pt-6 pb-2">
+                            <CardTitle className="font-serif text-xl text-gris">Detalle de Suscripción SaaS</CardTitle>
+                          </CardHeader>
+                          <CardContent className="px-6 pb-6 text-sm text-gris/85 space-y-4">
+                            <div className="flex justify-between items-center border-b border-arena/20 pb-2">
+                              <span className="opacity-60 text-xs uppercase tracking-wider font-semibold">Plan Actual</span>
+                              <span className="font-bold text-gris capitalize text-base">{tenantInfo?.subscriptionPlan || 'Básico'}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-arena/20 pb-2">
+                              <span className="opacity-60 text-xs uppercase tracking-wider font-semibold">Precio Estimado</span>
+                              <span className="font-bold text-gris">
+                                {tenantInfo?.subscriptionPlan === 'enterprise' 
+                                  ? `$${billingConfig?.priceEnterprise || 120.00}` 
+                                  : tenantInfo?.subscriptionPlan === 'premium'
+                                    ? `$${billingConfig?.pricePremium || 60.00}`
+                                    : `$${billingConfig?.priceBasic || 30.00}`
+                                } / mes
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-arena/20 pb-2">
+                              <span className="opacity-60 text-xs uppercase tracking-wider font-semibold">Fecha de Vencimiento</span>
+                              <span className="font-bold text-gris">
+                                {tenantInfo?.subscriptionExpiry ? new Date(tenantInfo.subscriptionExpiry).toLocaleDateString() : 'N/A'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center pb-1">
+                              <span className="opacity-60 text-xs uppercase tracking-wider font-semibold">Estado de Cuenta</span>
+                              <span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full ${
+                                !isSaaSSuspended 
+                                  ? 'bg-green-500/20 text-green-600'
+                                  : 'bg-red-500/20 text-red-600'
+                              }`}>
+                                {!isSaaSSuspended ? 'Activa' : isSuspended ? 'Suspendida' : 'Vencida'}
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Historial de Pagos */}
+                        <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden">
+                          <CardHeader className="px-6 pt-6 pb-2">
+                            <CardTitle className="font-serif text-xl text-gris">Historial de Reportes</CardTitle>
+                          </CardHeader>
+                          <CardContent className="px-6 pb-6">
+                            {billingLoading ? (
+                              <div className="flex justify-center py-6">
+                                <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                              </div>
+                            ) : billingHistory.length > 0 ? (
+                              <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
+                                {billingHistory.map((pay) => (
+                                  <div key={pay.id} className="p-4 bg-arena/35 rounded-2xl border border-arena/25 text-xs space-y-2 shadow-inner">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-semibold text-gris/70">
+                                        📅 {new Date(pay.createdAt).toLocaleDateString()}
+                                      </span>
+                                      <span className={`font-bold uppercase tracking-wider text-[9px] px-2 py-0.5 rounded-full ${
+                                        pay.status === 'approved' 
+                                          ? 'bg-green-500/20 text-green-600' 
+                                          : pay.status === 'rejected'
+                                            ? 'bg-red-500/20 text-red-600'
+                                            : 'bg-amber-500/20 text-amber-600'
+                                      }`}>
+                                        {pay.status === 'approved' ? 'Aprobado' : pay.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
+                                      </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-gris/80">
+                                      <p>Monto: <strong className="text-gris">${pay.amount.toFixed(2)}</strong></p>
+                                      <p>Plan: <strong className="text-gris capitalize">{pay.subscriptionPlan}</strong></p>
+                                      <p className="col-span-2">Referencia: <strong className="text-gris font-mono">{pay.referenceNumber}</strong></p>
+                                      {pay.receiptUrl && (
+                                        <p className="col-span-2">
+                                          Comprobante:{' '}
+                                          <a href={pay.receiptUrl} target="_blank" rel="noreferrer" className="text-salvia underline font-medium hover:text-salvia/80">
+                                            Ver Archivo
+                                          </a>
+                                        </p>
+                                      )}
+                                    </div>
+                                    {pay.status === 'approved' && pay.processedAt && (
+                                      <div className="mt-1.5 pt-1.5 border-t border-arena/50 text-[10px] text-salvia font-medium">
+                                        Activado el: {new Date(pay.processedAt).toLocaleDateString()}
+                                        {pay.activationNotes && <p className="text-gris/65 font-normal mt-0.5">Nota: "{pay.activationNotes}"</p>}
+                                      </div>
+                                    )}
+                                    {pay.status === 'rejected' && pay.rejectedReason && (
+                                      <div className="mt-1.5 pt-1.5 border-t border-arena/50 text-[10px] text-red-500 font-semibold">
+                                        Motivo de rechazo: "{pay.rejectedReason}"
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 text-gris/50 text-xs">
+                                No se registran pagos reportados anteriormente.
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </>
             )}

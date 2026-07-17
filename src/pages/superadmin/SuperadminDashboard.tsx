@@ -1,12 +1,31 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, where, getDoc, addDoc, orderBy } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Label } from '../../components/ui/Label';
 import { Input } from '../../components/ui/Input';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Plus, Edit2, Trash2, Users, CreditCard, Building, ExternalLink } from 'lucide-react';
+import { 
+  ShieldCheck, 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  Users, 
+  CreditCard, 
+  Building, 
+  ExternalLink,
+  Settings,
+  DollarSign,
+  Calendar,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Info,
+  Check,
+  X,
+  FileText
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -114,6 +133,205 @@ export function SuperadminDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
+  // SaaS Tab Selection
+  const [superadminTab, setSuperadminTab] = useState<'studios' | 'subscriptions' | 'billing_config'>('studios');
+
+  // Global Billing Configuration States
+  const [bankName, setBankName] = useState('Banco Pichincha');
+  const [bankAccountHolder, setBankAccountHolder] = useState('UIO YOGA S.A.S');
+  const [bankAccountNumber, setBankAccountAccountNumber] = useState('2206789456');
+  const [bankAccountType, setBankAccountType] = useState('Corriente');
+  const [bankTaxId, setBankTaxId] = useState('1793456789001');
+  const [priceBasic, setPriceBasic] = useState('30.00');
+  const [pricePremium, setPricePremium] = useState('60.00');
+  const [priceEnterprise, setPriceEnterprise] = useState('120.00');
+  const [configSaving, setConfigSaving] = useState(false);
+  const [configSuccess, setConfigSuccess] = useState('');
+  const [configError, setConfigError] = useState('');
+
+  // Manual Activation and Rejection States
+  const [selectedStudioForManage, setSelectedStudioForManage] = useState<StudioInfo | null>(null);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [manageHistory, setManageHistory] = useState<any[]>([]);
+  const [manageHistoryLoading, setManageHistoryLoading] = useState(false);
+  const [actionNotes, setActionNotes] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState<string | null>(null); // payment ID
+
+  const fetchBillingConfig = async () => {
+    try {
+      const docRef = doc(db, 'settings', 'platform_billing');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setBankName(data.bankName || 'Banco Pichincha');
+        setBankAccountHolder(data.bankAccountHolder || 'UIO YOGA S.A.S');
+        setBankAccountAccountNumber(data.bankAccountNumber || '2206789456');
+        setBankAccountType(data.bankAccountType || 'Corriente');
+        setBankTaxId(data.bankTaxId || '1793456789001');
+        setPriceBasic(data.priceBasic?.toString() || '30.00');
+        setPricePremium(data.pricePremium?.toString() || '60.00');
+        setPriceEnterprise(data.priceEnterprise?.toString() || '120.00');
+      }
+    } catch (err) {
+      console.error("Error fetching platform billing configuration:", err);
+    }
+  };
+
+  const handleSaveBillingConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setConfigSaving(true);
+    setConfigSuccess('');
+    setConfigError('');
+    try {
+      const docRef = doc(db, 'settings', 'platform_billing');
+      await setDoc(docRef, {
+        bankName,
+        bankAccountHolder,
+        bankAccountNumber,
+        bankAccountType,
+        bankTaxId,
+        priceBasic: parseFloat(priceBasic),
+        pricePremium: parseFloat(pricePremium),
+        priceEnterprise: parseFloat(priceEnterprise),
+        updatedAt: new Date().toISOString()
+      });
+      setConfigSuccess('Ajustes de facturación guardados con éxito.');
+    } catch (err: any) {
+      console.error("Error saving platform billing configuration:", err);
+      setConfigError(err.message || 'Error al guardar los ajustes.');
+    } finally {
+      setConfigSaving(false);
+    }
+  };
+
+  const fetchPaymentsHistory = async (studioId: string) => {
+    setManageHistoryLoading(true);
+    try {
+      const q = query(
+        collection(db, 'payments'),
+        where('studioId', '==', studioId),
+        orderBy('createdAt', 'desc')
+      );
+      const snap = await getDocs(q);
+      const history = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setManageHistory(history);
+    } catch (err) {
+      console.error("Error fetching studio payment history:", err);
+    } finally {
+      setManageHistoryLoading(false);
+    }
+  };
+
+  const handleOpenManageModal = async (studio: StudioInfo) => {
+    setSelectedStudioForManage(studio);
+    setIsManageModalOpen(true);
+    setRejectionReason('');
+    setShowRejectInput(null);
+    setActionNotes('');
+    await fetchPaymentsHistory(studio.id);
+  };
+
+  const handleActivateSubscription = async (paymentToApprove?: any) => {
+    if (!selectedStudioForManage) return;
+    setActionLoading(true);
+    try {
+      let currentExpiry = selectedStudioForManage.subscriptionExpiry 
+        ? new Date(selectedStudioForManage.subscriptionExpiry) 
+        : null;
+      
+      let baseDate = new Date();
+      if (currentExpiry && currentExpiry > new Date()) {
+        baseDate = currentExpiry;
+      }
+      
+      const newExpiryDate = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      const studioRef = doc(db, 'studios', selectedStudioForManage.id);
+      await updateDoc(studioRef, {
+        status: 'active',
+        subscriptionExpiry: newExpiryDate
+      });
+
+      if (paymentToApprove) {
+        const paymentRef = doc(db, 'payments', paymentToApprove.id);
+        await updateDoc(paymentRef, {
+          status: 'approved',
+          processedAt: new Date().toISOString(),
+          processedBy: user?.email || 'superadmin',
+          activationNotes: actionNotes || 'Activación manual por el administrador'
+        });
+      } else {
+        await addDoc(collection(db, 'payments'), {
+          studioId: selectedStudioForManage.id,
+          subdomain: selectedStudioForManage.subdomain,
+          subscriptionPlan: selectedStudioForManage.subscriptionPlan || 'basic',
+          amount: 0.00,
+          transferDate: new Date().toISOString().split('T')[0],
+          referenceNumber: 'MANUAL-ACTIVATE',
+          remarks: actionNotes || 'Activado directamente por el superadministrador',
+          status: 'approved',
+          receiptUploaded: false,
+          createdAt: new Date().toISOString(),
+          processedAt: new Date().toISOString(),
+          processedBy: user?.email || 'superadmin',
+          activationNotes: actionNotes || 'Activación manual'
+        });
+      }
+
+      alert('¡Suscripción activada/renovada con éxito!');
+      setActionNotes('');
+      
+      await fetchStudios();
+      await fetchPaymentsHistory(selectedStudioForManage.id);
+      
+      setSelectedStudioForManage(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          status: 'active',
+          subscriptionExpiry: newExpiryDate
+        };
+      });
+    } catch (err: any) {
+      console.error("Error activating subscription:", err);
+      alert('Error al activar la suscripción: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectPayment = async (payment: any) => {
+    if (!rejectionReason.trim()) {
+      alert('Por favor ingresa un motivo para el rechazo.');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const paymentRef = doc(db, 'payments', payment.id);
+      await updateDoc(paymentRef, {
+        status: 'rejected',
+        processedAt: new Date().toISOString(),
+        processedBy: user?.email || 'superadmin',
+        rejectedReason: rejectionReason
+      });
+
+      alert('Pago rechazado con éxito.');
+      setRejectionReason('');
+      setShowRejectInput(null);
+      
+      if (selectedStudioForManage) {
+        await fetchPaymentsHistory(selectedStudioForManage.id);
+      }
+    } catch (err: any) {
+      console.error("Error rejecting payment:", err);
+      alert('Error al rechazar el pago: ' + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const fetchStudios = async () => {
     try {
       const snap = await getDocs(collection(db, 'studios'));
@@ -167,7 +385,7 @@ export function SuperadminDashboard() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      await Promise.all([fetchStudios(), fetchUsers()]);
+      await Promise.all([fetchStudios(), fetchUsers(), fetchBillingConfig()]);
       setLoading(false);
     }
     loadData();
@@ -364,7 +582,40 @@ export function SuperadminDashboard() {
           </div>
         </div>
 
-        {/* Stats Section */}
+        {/* Tab navigation */}
+        <div className="flex gap-3 pb-6 overflow-x-auto select-none no-scrollbar border-b border-arena/30 mb-8 text-xs font-bold uppercase tracking-widest">
+          <button
+            type="button"
+            onClick={() => setSuperadminTab('studios')}
+            className={`rounded-full px-6 py-3 transition-all shrink-0 cursor-pointer ${
+              superadminTab === 'studios' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+            }`}
+          >
+            Estudios & Roles
+          </button>
+          <button
+            type="button"
+            onClick={() => setSuperadminTab('subscriptions')}
+            className={`rounded-full px-6 py-3 transition-all shrink-0 cursor-pointer ${
+              superadminTab === 'subscriptions' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+            }`}
+          >
+            Suscripciones & Pagos
+          </button>
+          <button
+            type="button"
+            onClick={() => setSuperadminTab('billing_config')}
+            className={`rounded-full px-6 py-3 transition-all shrink-0 cursor-pointer ${
+              superadminTab === 'billing_config' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+            }`}
+          >
+            Ajustes de Facturación
+          </button>
+        </div>
+
+        {superadminTab === 'studios' && (
+          <>
+            {/* Stats Section */}
         <div className="grid gap-6 md:grid-cols-4 mb-12">
           <Card className="rounded-[32px] border-[8px] border-white bg-arena shadow-xl p-6">
             <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
@@ -569,6 +820,209 @@ export function SuperadminDashboard() {
             </div>
           </CardContent>
         </Card>
+          </>
+        )}
+
+        {/* TAB 2: SUSCRIPCIONES */}
+        {superadminTab === 'subscriptions' && (
+          <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden mb-12 animate-fadeIn">
+            <CardHeader className="px-8 pt-8 pb-4">
+              <CardTitle className="font-serif text-2xl text-gris">Gestión de Suscripciones SaaS</CardTitle>
+              <p className="text-xs text-gris/60">Activa suscripciones de forma manual, revisa transferencias bancarias y aprueba/rechaza comprobantes.</p>
+            </CardHeader>
+            <CardContent className="px-8 pb-8">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-arena/30 text-gris/60 border-b border-arena/20 font-bold uppercase tracking-wider">
+                      <th className="p-4">Estudio</th>
+                      <th className="p-4">Plan Actual</th>
+                      <th className="p-4">Estado</th>
+                      <th className="p-4">Vencimiento</th>
+                      <th className="p-4 text-center">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-arena/10">
+                    {studios.map(studio => (
+                      <tr key={studio.id} className="text-gris/85 hover:bg-arena/5 transition-colors">
+                        <td className="p-4 font-semibold">
+                          <p>{studio.name}</p>
+                          <p className="text-[10px] text-gris/50 font-normal font-mono">{studio.subdomain}.uioyoga.com</p>
+                        </td>
+                        <td className="p-4 capitalize font-medium">{studio.subscriptionPlan || 'Básico'}</td>
+                        <td className="p-4">
+                          <span className={`text-[9px] font-bold uppercase px-3 py-1 rounded-full ${
+                            studio.status === 'active' 
+                              ? 'bg-green-500/20 text-green-600' 
+                              : studio.status === 'trial'
+                                ? 'bg-terracota/20 text-terracota'
+                                : 'bg-red-500/20 text-red-600'
+                          }`}>
+                            {studio.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-xs">
+                          {studio.status === 'trial' 
+                            ? `Prueba: ${studio.trialEndsAt ? new Date(studio.trialEndsAt).toLocaleDateString() : 'N/A'}` 
+                            : studio.subscriptionExpiry ? new Date(studio.subscriptionExpiry).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="p-4 text-center">
+                          <Button
+                            variant="outline"
+                            onClick={() => handleOpenManageModal(studio)}
+                            className="rounded-full border border-salvia text-[10px] font-bold uppercase tracking-widest text-salvia hover:bg-salvia/10 px-5 py-2 cursor-pointer"
+                          >
+                            Gestionar Suscripción
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* TAB 3: CONFIGURACIÓN DE FACTURACIÓN */}
+        {superadminTab === 'billing_config' && (
+          <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden mb-12 animate-fadeIn">
+            <CardHeader className="px-8 pt-8 pb-4 border-b border-arena/20">
+              <CardTitle className="font-serif text-2xl text-gris">Configuración Global de Facturación</CardTitle>
+              <p className="text-xs text-gris/60">Edita los detalles de la transferencia bancaria para los estudios y define los precios de cada plan de suscripción.</p>
+            </CardHeader>
+            <CardContent className="px-8 py-8">
+              <form onSubmit={handleSaveBillingConfig} className="max-w-2xl space-y-6">
+                {configSuccess && (
+                  <div className="p-3.5 bg-green-500/10 text-green-600 text-xs rounded-xl flex items-center gap-2 border border-green-500/20">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    <span>{configSuccess}</span>
+                  </div>
+                )}
+                {configError && (
+                  <div className="p-3.5 bg-red-500/10 text-red-500 text-xs rounded-xl flex items-center gap-2 border border-red-500/20">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{configError}</span>
+                  </div>
+                )}
+
+                {/* Datos bancarios */}
+                <div className="space-y-4">
+                  <h4 className="font-serif text-lg text-salvia font-semibold border-b border-arena/20 pb-1.5 flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" /> Datos Bancarios para Transferencias
+                  </h4>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="bankName" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Nombre del Banco</Label>
+                      <Input
+                        id="bankName"
+                        required
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        className="rounded-2xl border-none bg-arena/35 shadow-inner"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="bankAccountHolder" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Titular de la Cuenta</Label>
+                      <Input
+                        id="bankAccountHolder"
+                        required
+                        value={bankAccountHolder}
+                        onChange={(e) => setBankAccountHolder(e.target.value)}
+                        className="rounded-2xl border-none bg-arena/35 shadow-inner"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="bankAccountNumber" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Número de Cuenta</Label>
+                      <Input
+                        id="bankAccountNumber"
+                        required
+                        value={bankAccountNumber}
+                        onChange={(e) => setBankAccountAccountNumber(e.target.value)}
+                        className="rounded-2xl border-none bg-arena/35 shadow-inner"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="bankAccountType" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Tipo de Cuenta</Label>
+                      <Input
+                        id="bankAccountType"
+                        required
+                        value={bankAccountType}
+                        onChange={(e) => setBankAccountType(e.target.value)}
+                        className="rounded-2xl border-none bg-arena/35 shadow-inner"
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <Label htmlFor="bankTaxId" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Identificación / RUC para el comprobante</Label>
+                      <Input
+                        id="bankTaxId"
+                        required
+                        value={bankTaxId}
+                        onChange={(e) => setBankTaxId(e.target.value)}
+                        className="rounded-2xl border-none bg-arena/35 shadow-inner"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Precios de planes */}
+                <div className="space-y-4 pt-4">
+                  <h4 className="font-serif text-lg text-salvia font-semibold border-b border-arena/20 pb-1.5 flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" /> Tarifas de Planes SaaS ($ USD / mes)
+                  </h4>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="priceBasic" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Precio Plan Básico ($)</Label>
+                      <Input
+                        id="priceBasic"
+                        type="number"
+                        step="0.01"
+                        required
+                        value={priceBasic}
+                        onChange={(e) => setPriceBasic(e.target.value)}
+                        className="rounded-2xl border-none bg-arena/35 shadow-inner"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="pricePremium" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Precio Plan Premium ($)</Label>
+                      <Input
+                        id="pricePremium"
+                        type="number"
+                        step="0.01"
+                        required
+                        value={pricePremium}
+                        onChange={(e) => setPricePremium(e.target.value)}
+                        className="rounded-2xl border-none bg-arena/35 shadow-inner"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="priceEnterprise" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Precio Plan Enterprise ($)</Label>
+                      <Input
+                        id="priceEnterprise"
+                        type="number"
+                        step="0.01"
+                        required
+                        value={priceEnterprise}
+                        onChange={(e) => setPriceEnterprise(e.target.value)}
+                        className="rounded-2xl border-none bg-arena/35 shadow-inner"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4">
+                  <Button
+                    type="submit"
+                    disabled={configSaving}
+                    className="rounded-full bg-salvia px-8 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md cursor-pointer"
+                  >
+                    {configSaving ? 'Guardando Ajustes...' : 'Guardar Configuración'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
 
         {/* Modal Form */}
@@ -806,6 +1260,218 @@ export function SuperadminDashboard() {
                   </Button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* MODAL GESTIONAR SUSCRIPCION */}
+        {isManageModalOpen && selectedStudioForManage && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-full max-w-2xl rounded-[32px] border-[8px] border-white bg-arena shadow-xl p-6 md:p-8 relative max-h-[90vh] overflow-y-auto scrollbar-thin"
+            >
+              <button
+                type="button"
+                onClick={() => setIsManageModalOpen(false)}
+                className="absolute top-4 right-4 p-2 hover:bg-white/50 rounded-full text-gris/75 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <span className="mb-1 block text-[9px] font-bold tracking-[0.2em] uppercase text-terracota">
+                Gestión de Suscripción SaaS
+              </span>
+              <h3 className="font-serif text-3xl text-gris mb-1">
+                {selectedStudioForManage.name}
+              </h3>
+              <p className="text-xs text-gris/60 mb-6">
+                Subdominio: <span className="font-mono">{selectedStudioForManage.subdomain}.uioyoga.com</span>
+              </p>
+
+              {/* Detalles y Activación Rápida */}
+              <div className="grid gap-6 md:grid-cols-2 mb-6">
+                {/* Detalles del Plan */}
+                <Card className="rounded-[24px] border-4 border-white bg-white/70 shadow-sm p-4">
+                  <h4 className="font-serif text-base text-salvia font-semibold mb-3">Información del Plan</h4>
+                  <div className="text-xs space-y-2 text-gris/85">
+                    <div className="flex justify-between border-b border-arena/20 pb-1">
+                      <span>Plan:</span>
+                      <strong className="capitalize text-gris">{selectedStudioForManage.subscriptionPlan || 'Básico'}</strong>
+                    </div>
+                    <div className="flex justify-between border-b border-arena/20 pb-1">
+                      <span>Estado:</span>
+                      <strong className="uppercase text-gris">{selectedStudioForManage.status}</strong>
+                    </div>
+                    <div className="flex justify-between pb-1">
+                      <span>Vence el:</span>
+                      <strong className="text-gris">
+                        {selectedStudioForManage.subscriptionExpiry 
+                          ? new Date(selectedStudioForManage.subscriptionExpiry).toLocaleDateString() 
+                          : 'N/A'}
+                      </strong>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Activación Manual Directa */}
+                <Card className="rounded-[24px] border-4 border-white bg-white/70 shadow-sm p-4 flex flex-col justify-between">
+                  <div>
+                    <h4 className="font-serif text-base text-terracota font-semibold mb-2">Activación Manual Rápida</h4>
+                    <p className="text-[10px] text-gris/65 leading-relaxed mb-3">
+                      Renueva la suscripción por 1 mes (30 días). No se requiere comprobante previo.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      type="text"
+                      placeholder="Observación (ej: Pago WhatsApp)"
+                      value={actionNotes}
+                      onChange={(e) => setActionNotes(e.target.value)}
+                      className="h-8 rounded-xl text-xs bg-white border-none shadow-inner"
+                    />
+                    <Button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={() => handleActivateSubscription()}
+                      className="w-full h-8 rounded-full bg-salvia text-[10px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 cursor-pointer"
+                    >
+                      {actionLoading ? 'Procesando...' : 'Activar Suscripción'}
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Log de reportes de pago */}
+              <div className="space-y-3">
+                <h4 className="font-serif text-lg text-gris font-medium">Reportes de Pago Recientes</h4>
+                {manageHistoryLoading ? (
+                  <div className="flex justify-center py-6">
+                    <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                  </div>
+                ) : manageHistory.length > 0 ? (
+                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                    {manageHistory.map((report) => (
+                      <div key={report.id} className="p-4 bg-white/85 rounded-2xl border border-white/50 text-xs space-y-3 shadow-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-gris">
+                            Reportado: {new Date(report.createdAt).toLocaleString()}
+                          </span>
+                          <span className={`font-bold uppercase tracking-wider text-[8px] px-2 py-0.5 rounded-full ${
+                            report.status === 'approved' 
+                              ? 'bg-green-500/20 text-green-600' 
+                              : report.status === 'rejected'
+                                ? 'bg-red-500/20 text-red-600'
+                                : 'bg-amber-500/20 text-amber-600'
+                          }`}>
+                            {report.status === 'approved' ? 'Aprobado' : report.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-gris/85 border-b border-arena/20 pb-2">
+                          <p>Monto: <strong className="text-gris">${report.amount.toFixed(2)}</strong></p>
+                          <p>Plan solicitado: <strong className="text-gris capitalize">{report.subscriptionPlan}</strong></p>
+                          <p>Fecha de transferencia: <strong className="text-gris">{report.transferDate}</strong></p>
+                          <p>Referencia: <strong className="text-gris font-mono">{report.referenceNumber}</strong></p>
+                          {report.remarks && <p className="col-span-2 text-gris/70">Nota del cliente: "{report.remarks}"</p>}
+                        </div>
+
+                        {/* Visualizar comprobante */}
+                        {report.receiptUrl && (
+                          <div className="flex items-center gap-2 bg-arena/25 p-2 rounded-xl border border-arena/20">
+                            <FileText className="h-4 w-4 text-salvia" />
+                            <span className="flex-1 truncate text-[10px] text-gris/70">Comprobante adjunto</span>
+                            <a
+                              href={report.receiptUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[10px] font-bold uppercase tracking-widest text-salvia hover:text-salvia/85 underline"
+                            >
+                              Ver / Descargar
+                            </a>
+                          </div>
+                        )}
+
+                        {/* Metadatos de aprobación o rechazo */}
+                        {report.status === 'approved' && report.processedAt && (
+                          <div className="text-[10px] text-salvia font-medium">
+                            Aprobado el {new Date(report.processedAt).toLocaleDateString()} por {report.processedBy}
+                            {report.activationNotes && <p className="text-gris/65 font-normal">Nota: "{report.activationNotes}"</p>}
+                          </div>
+                        )}
+
+                        {report.status === 'rejected' && report.rejectedReason && (
+                          <div className="text-[10px] text-red-500 font-semibold">
+                            Rechazado el {new Date(report.processedAt || report.createdAt).toLocaleDateString()} por {report.processedBy || 'admin'}
+                            <p className="text-gris/65 font-normal">Motivo: "{report.rejectedReason}"</p>
+                          </div>
+                        )}
+
+                        {/* Acciones para reportes pendientes */}
+                        {report.status === 'pending' && (
+                          <div className="pt-1.5 space-y-3">
+                            {showRejectInput === report.id ? (
+                              <div className="space-y-2">
+                                <Label className="text-[9px] font-bold uppercase text-red-500">Motivo del Rechazo</Label>
+                                <textarea
+                                  placeholder="Ej: Comprobante ilegible, monto incompleto, etc."
+                                  value={rejectionReason}
+                                  onChange={(e) => setRejectionReason(e.target.value)}
+                                  className="w-full text-xs p-2.5 rounded-xl bg-white border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400"
+                                  rows={2}
+                                />
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    type="button"
+                                    onClick={() => {
+                                      setShowRejectInput(null);
+                                      setRejectionReason('');
+                                    }}
+                                    className="h-8 px-4 rounded-full border border-gris/10 bg-transparent text-[9px] font-bold uppercase text-gris hover:bg-white cursor-pointer"
+                                  >
+                                    Cancelar
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    disabled={actionLoading}
+                                    onClick={() => handleRejectPayment(report)}
+                                    className="h-8 px-5 rounded-full bg-red-500 text-[9px] font-bold uppercase text-white hover:bg-red-600 cursor-pointer"
+                                  >
+                                    Confirmar Rechazo
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  type="button"
+                                  onClick={() => setShowRejectInput(report.id)}
+                                  className="h-8 px-4 rounded-full border border-red-200 bg-transparent text-[10px] font-bold uppercase text-red-600 hover:bg-red-50 cursor-pointer"
+                                >
+                                  Rechazar
+                                </Button>
+                                <Button
+                                  type="button"
+                                  disabled={actionLoading}
+                                  onClick={() => handleActivateSubscription(report)}
+                                  className="h-8 px-5 rounded-full bg-salvia text-[10px] font-bold uppercase text-white hover:bg-salvia/90 cursor-pointer"
+                                >
+                                  {actionLoading ? 'Aprobando...' : 'Aprobar y Activar'}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-gris/50 text-xs bg-white/50 rounded-2xl border border-white/20">
+                    No hay reportes de pago registrados para este estudio.
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}
