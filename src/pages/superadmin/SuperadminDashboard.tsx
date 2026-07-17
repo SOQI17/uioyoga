@@ -545,7 +545,7 @@ export function SuperadminDashboard() {
             
             await updateDoc(userDocRef, {
               role: isSuperAdmin ? 'superadmin' : 'admin',
-              tenantId: subdomain.trim().toLowerCase()
+              tenantId: editingStudio ? editingStudio.id : docId
             });
           }
         } catch (err) {
@@ -816,7 +816,9 @@ export function SuperadminDashboard() {
                     .filter(u => {
                       const matchesSearch = u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                             u.email?.toLowerCase().includes(searchQuery.toLowerCase());
-                      const matchesStudio = studioFilter ? u.tenantId === studioFilter : true;
+                      const matchesStudio = studioFilter 
+                        ? (u.tenantId === studioFilter || u.tenantId === studios.find(s => s.id === studioFilter)?.subdomain) 
+                        : true;
                       return matchesSearch && matchesStudio;
                     })
                     .map(u => (
@@ -837,13 +839,13 @@ export function SuperadminDashboard() {
                         </td>
                         <td className="p-4">
                           <select
-                            value={u.tenantId || ''}
+                            value={(u.tenantId && u.tenantId.includes('.')) ? u.tenantId.split('.')[0] : (u.tenantId || '')}
                             onChange={(e) => handleUpdateUser(u.uid, { tenantId: e.target.value || null as any })}
                             className="bg-arena/40 text-gris rounded-xl px-3 py-1.5 text-xs border border-arena/30 focus:outline-none cursor-pointer focus:ring-1 focus:ring-salvia w-full max-w-[200px]"
                           >
                             <option value="">-- Ninguno / Base SaaS --</option>
                             {studios.map(s => (
-                              <option key={s.id} value={s.subdomain}>{s.name}</option>
+                              <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
                           </select>
                         </td>
