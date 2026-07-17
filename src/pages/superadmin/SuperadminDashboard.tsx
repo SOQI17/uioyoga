@@ -159,6 +159,45 @@ export function SuperadminDashboard() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState<string | null>(null); // payment ID
 
+  // Editable Plan details inside management modal
+  const [editPlan, setEditPlan] = useState('basic');
+  const [editExpiry, setEditExpiry] = useState('');
+  const [editStatus, setEditStatus] = useState<'active' | 'suspended' | 'trial'>('active');
+  const [isUpdatingStudioDetails, setIsUpdatingStudioDetails] = useState(false);
+
+  const handleUpdateStudioDetails = async () => {
+    if (!selectedStudioForManage) return;
+    setIsUpdatingStudioDetails(true);
+    try {
+      const studioRef = doc(db, 'studios', selectedStudioForManage.id);
+      const updateData: any = {
+        subscriptionPlan: editPlan,
+        status: editStatus,
+        subscriptionExpiry: editExpiry || null
+      };
+      await updateDoc(studioRef, updateData);
+      
+      alert('Detalles de suscripción actualizados con éxito.');
+      await fetchStudios();
+      
+      // Update modal local state
+      setSelectedStudioForManage(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          subscriptionPlan: editPlan,
+          status: editStatus,
+          subscriptionExpiry: editExpiry
+        };
+      });
+    } catch (err: any) {
+      console.error("Error updating studio details:", err);
+      alert("Error al actualizar: " + err.message);
+    } finally {
+      setIsUpdatingStudioDetails(false);
+    }
+  };
+
   const fetchBillingConfig = async () => {
     try {
       const docRef = doc(db, 'settings', 'platform_billing');
@@ -230,6 +269,11 @@ export function SuperadminDashboard() {
     setRejectionReason('');
     setShowRejectInput(null);
     setActionNotes('');
+    
+    setEditPlan(studio.subscriptionPlan || 'basic');
+    setEditExpiry(studio.subscriptionExpiry ? studio.subscriptionExpiry.slice(0, 10) : '');
+    setEditStatus(studio.status || 'active');
+
     await fetchPaymentsHistory(studio.id);
   };
 
@@ -1292,35 +1336,70 @@ export function SuperadminDashboard() {
 
               {/* Detalles y Activación Rápida */}
               <div className="grid gap-6 md:grid-cols-2 mb-6">
-                {/* Detalles del Plan */}
-                <Card className="rounded-[24px] border-4 border-white bg-white/70 shadow-sm p-4">
-                  <h4 className="font-serif text-base text-salvia font-semibold mb-3">Información del Plan</h4>
-                  <div className="text-xs space-y-2 text-gris/85">
-                    <div className="flex justify-between border-b border-arena/20 pb-1">
-                      <span>Plan:</span>
-                      <strong className="capitalize text-gris">{selectedStudioForManage.subscriptionPlan || 'Básico'}</strong>
+                
+                {/* Gestión del Plan (Editable) */}
+                <Card className="rounded-[24px] border border-white/10 bg-black/45 shadow-inner p-5 space-y-3">
+                  <h4 className="font-serif text-base text-salvia font-semibold flex items-center gap-1.5">
+                    <Info className="h-4 w-4" /> Gestión de Plan
+                  </h4>
+                  <div className="text-xs space-y-3 text-gris">
+                    
+                    <div className="space-y-1">
+                      <Label htmlFor="editPlan" className="text-[9px] font-bold uppercase text-gris/60">Plan Tarifario</Label>
+                      <select
+                        id="editPlan"
+                        value={editPlan}
+                        onChange={(e) => setEditPlan(e.target.value)}
+                        className="flex h-9 w-full rounded-xl border-none bg-arena/85 text-gris px-3 py-1.5 text-xs shadow-inner focus:outline-none focus:ring-1 focus:ring-salvia"
+                      >
+                        <option value="basic">Básico</option>
+                        <option value="premium">Premium</option>
+                        <option value="enterprise">Enterprise</option>
+                      </select>
                     </div>
-                    <div className="flex justify-between border-b border-arena/20 pb-1">
-                      <span>Estado:</span>
-                      <strong className="uppercase text-gris">{selectedStudioForManage.status}</strong>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="editStatus" className="text-[9px] font-bold uppercase text-gris/60">Estado del Estudio</Label>
+                      <select
+                        id="editStatus"
+                        value={editStatus}
+                        onChange={(e: any) => setEditStatus(e.target.value)}
+                        className="flex h-9 w-full rounded-xl border-none bg-arena/85 text-gris px-3 py-1.5 text-xs shadow-inner focus:outline-none focus:ring-1 focus:ring-salvia"
+                      >
+                        <option value="active">Activo</option>
+                        <option value="suspended">Suspendido / Bloqueado</option>
+                        <option value="trial">Prueba (Trial)</option>
+                      </select>
                     </div>
-                    <div className="flex justify-between pb-1">
-                      <span>Vence el:</span>
-                      <strong className="text-gris">
-                        {selectedStudioForManage.subscriptionExpiry 
-                          ? new Date(selectedStudioForManage.subscriptionExpiry).toLocaleDateString() 
-                          : 'N/A'}
-                      </strong>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="editExpiry" className="text-[9px] font-bold uppercase text-gris/60">Fecha de Vencimiento</Label>
+                      <Input
+                        id="editExpiry"
+                        type="date"
+                        value={editExpiry}
+                        onChange={(e) => setEditExpiry(e.target.value)}
+                        className="h-9 rounded-xl text-xs bg-arena/85 border-none text-gris shadow-inner"
+                      />
                     </div>
+
+                    <Button
+                      type="button"
+                      disabled={isUpdatingStudioDetails}
+                      onClick={handleUpdateStudioDetails}
+                      className="w-full h-9 mt-1 rounded-full bg-salvia text-[10px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 cursor-pointer shadow-md"
+                    >
+                      {isUpdatingStudioDetails ? 'Guardando...' : 'Guardar Cambios'}
+                    </Button>
                   </div>
                 </Card>
 
-                {/* Activación Manual Directa */}
-                <Card className="rounded-[24px] border-4 border-white bg-white/70 shadow-sm p-4 flex flex-col justify-between">
+                {/* Activación Manual Directa (Renovación 1 mes) */}
+                <Card className="rounded-[24px] border border-white/10 bg-black/45 shadow-inner p-5 flex flex-col justify-between">
                   <div>
-                    <h4 className="font-serif text-base text-terracota font-semibold mb-2">Activación Manual Rápida</h4>
-                    <p className="text-[10px] text-gris/65 leading-relaxed mb-3">
-                      Renueva la suscripción por 1 mes (30 días). No se requiere comprobante previo.
+                    <h4 className="font-serif text-base text-terracota font-semibold mb-2">Activación Rápida (+30d)</h4>
+                    <p className="text-[10px] text-gris/70 leading-relaxed mb-3">
+                      Renueva la suscripción por 1 mes (30 días) desde su vencimiento actual o desde hoy si ya venció.
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -1329,13 +1408,13 @@ export function SuperadminDashboard() {
                       placeholder="Observación (ej: Pago WhatsApp)"
                       value={actionNotes}
                       onChange={(e) => setActionNotes(e.target.value)}
-                      className="h-8 rounded-xl text-xs bg-white border-none shadow-inner"
+                      className="h-9 rounded-xl text-xs bg-arena/85 border-none text-gris shadow-inner"
                     />
                     <Button
                       type="button"
                       disabled={actionLoading}
                       onClick={() => handleActivateSubscription()}
-                      className="w-full h-8 rounded-full bg-salvia text-[10px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 cursor-pointer"
+                      className="w-full h-9 rounded-full bg-salvia text-[10px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 cursor-pointer shadow-md"
                     >
                       {actionLoading ? 'Procesando...' : 'Activar Suscripción'}
                     </Button>
@@ -1353,7 +1432,7 @@ export function SuperadminDashboard() {
                 ) : manageHistory.length > 0 ? (
                   <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
                     {manageHistory.map((report) => (
-                      <div key={report.id} className="p-4 bg-white/85 rounded-2xl border border-white/50 text-xs space-y-3 shadow-sm">
+                      <div key={report.id} className="p-4 bg-black/35 rounded-2xl border border-white/10 text-xs space-y-3 shadow-inner">
                         <div className="flex justify-between items-center">
                           <span className="font-semibold text-gris">
                             Reportado: {new Date(report.createdAt).toLocaleString()}
@@ -1369,7 +1448,7 @@ export function SuperadminDashboard() {
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-gris/85 border-b border-arena/20 pb-2">
+                        <div className="grid grid-cols-2 gap-2 text-gris/80 border-b border-arena/20 pb-2">
                           <p>Monto: <strong className="text-gris">${report.amount.toFixed(2)}</strong></p>
                           <p>Plan solicitado: <strong className="text-gris capitalize">{report.subscriptionPlan}</strong></p>
                           <p>Fecha de transferencia: <strong className="text-gris">{report.transferDate}</strong></p>
@@ -1418,7 +1497,7 @@ export function SuperadminDashboard() {
                                   placeholder="Ej: Comprobante ilegible, monto incompleto, etc."
                                   value={rejectionReason}
                                   onChange={(e) => setRejectionReason(e.target.value)}
-                                  className="w-full text-xs p-2.5 rounded-xl bg-white border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400"
+                                  className="w-full text-xs p-2.5 rounded-xl bg-arena/85 border-none text-gris focus:outline-none focus:ring-1 focus:ring-red-400"
                                   rows={2}
                                 />
                                 <div className="flex gap-2 justify-end">
@@ -1467,7 +1546,7 @@ export function SuperadminDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-gris/50 text-xs bg-white/50 rounded-2xl border border-white/20">
+                  <div className="text-center py-6 text-gris/50 text-xs bg-black/40 rounded-2xl border border-white/10">
                     No hay reportes de pago registrados para este estudio.
                   </div>
                 )}
