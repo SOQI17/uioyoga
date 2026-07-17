@@ -513,9 +513,9 @@ export function Dashboard() {
       setIsPaymentModalOpen(false);
       setSelectedUserForPayment(null);
       fetchUsers();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving payment details:", err);
-      alert("No se pudo registrar el pago.");
+      alert("No se pudo registrar el pago: " + (err.message || err));
     } finally {
       setPaymentLoading(false);
     }
