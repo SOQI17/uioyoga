@@ -99,7 +99,7 @@ export function Home() {
           <img 
             src={settings.splashImage || 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop'} 
             alt="Splash Welcome Background" 
-            className="w-full h-full object-cover opacity-35 filter brightness-75 contrast-110" 
+            className="w-full h-full object-cover opacity-15 filter brightness-75 contrast-110" 
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/80"></div>
         </div>
