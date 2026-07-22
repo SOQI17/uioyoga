@@ -486,7 +486,7 @@ export function Dashboard() {
   };
 
   const fetchClasses = async () => {
-    if (!userData || userData.role !== 'admin') return;
+    if (!userData || (userData.role !== 'admin' && userData.role !== 'instructor')) return;
     setAdminLoading(true);
     try {
       // 1. Fetch classes
@@ -591,7 +591,7 @@ export function Dashboard() {
   };
 
   const fetchRetreats = async () => {
-    if (!userData || userData.role !== 'admin') return;
+    if (!userData || (userData.role !== 'admin' && userData.role !== 'instructor')) return;
     setRetreatsLoading(true);
     try {
       const snapshot = await getDocs(query(collection(db, 'retreats'), where('tenantId', '==', getTenantId())));
@@ -605,11 +605,11 @@ export function Dashboard() {
   };
 
   const fetchUsers = async () => {
-    if (!userData || userData.role !== 'admin') return;
+    if (!userData || (userData.role !== 'admin' && userData.role !== 'instructor')) return;
     setUsersLoading(true);
     try {
       const snapshot = await getDocs(query(collection(db, 'users'), where('tenantId', '==', getTenantId())));
-      const fetched = snapshot.docs.map(doc => doc.data() as UserData);
+      const fetched = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserData));
       setUsers(fetched);
     } catch (err) {
       console.error("Error fetching users for admin:", err);
@@ -1787,7 +1787,7 @@ export function Dashboard() {
               </CardContent>
             </Card>
 
-            {userData.role !== 'admin' && (
+            {userData.role !== 'admin' && userData.role !== 'instructor' && (
               <Card className="rounded-[32px] border-[8px] border-white bg-arena shadow-xl">
                 <CardHeader className="px-8 pt-8 pb-4 border-b border-white/50">
                   <CardTitle className="font-serif text-2xl text-salvia">Mi Suscripción</CardTitle>
@@ -1830,7 +1830,7 @@ export function Dashboard() {
               </Card>
             )}
 
-            {userData.role !== 'admin' && (
+            {userData.role !== 'admin' && userData.role !== 'instructor' && (
               <Card className="rounded-[32px] border-[8px] border-white bg-terracota/10 shadow-xl overflow-hidden relative">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-terracota/5 rounded-bl-full"></div>
                  <CardContent className="p-8 text-center relative z-10">
@@ -2929,7 +2929,7 @@ export function Dashboard() {
             )}
 
             {/* VISTA ESTÁNDAR PARA ALUMNOS */}
-            {userData.role !== 'admin' && (
+            {userData.role !== 'admin' && userData.role !== 'instructor' && (
               <>
                 <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl">
                   <CardHeader className="px-8 pt-8 pb-4">
