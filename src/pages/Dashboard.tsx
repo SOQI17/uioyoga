@@ -820,9 +820,9 @@ export function Dashboard() {
       setMindfulness(5);
       fetchStudentProgress(selectedStudentForDetails.uid);
       alert("¡Valoración de progreso guardada con éxito!");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving progress log:", err);
-      alert("Error al guardar la valoración de progreso.");
+      alert("Error al guardar la valoración de progreso: " + (err?.message || err));
     } finally {
       setSavingProgress(false);
     }
