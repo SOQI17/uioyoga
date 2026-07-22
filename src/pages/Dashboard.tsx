@@ -49,6 +49,11 @@ interface Retreat {
   image: string;
   description: string;
 }
+function getYouTubeId(url: string) {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
 function RadarChart({ scores }: { scores: { flexibility: number; strength: number; balance: number; endurance: number; mindfulness: number } }) {
   const CX = 100;
   const CY = 100;
@@ -318,8 +323,19 @@ export function Dashboard() {
   const [allPayments, setAllPayments] = useState<any[]>([]);
   const [allPaymentsLoading, setAllPaymentsLoading] = useState(false);
 
-  // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'classes' | 'retreats' | 'home' | 'users' | 'subscriptions' | 'saas_billing' | 'business_metrics'>('classes');
+  // Active Admin/Instructor Tab
+  const [activeTab, setActiveTab] = useState<'classes' | 'retreats' | 'home' | 'users' | 'subscriptions' | 'saas_billing' | 'business_metrics' | 'students' | 'library'>('classes');
+
+  // Wellness Library States
+  const [wellnessItems, setWellnessItems] = useState<any[]>([]);
+  const [wellnessLoading, setWellnessLoading] = useState(false);
+  const [wellnessTitle, setWellnessTitle] = useState('');
+  const [wellnessDuration, setWellnessDuration] = useState('');
+  const [wellnessCategory, setWellnessCategory] = useState('');
+  const [wellnessUrl, setWellnessUrl] = useState('');
+  const [savingWellness, setSavingWellness] = useState(false);
+  const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
 
   const { tenantInfo } = useTenantStore();
 
@@ -498,7 +514,7 @@ export function Dashboard() {
   };
 
   const fetchStudentBookings = async () => {
-    if (!user || userData?.role === 'admin') return;
+    if (!user || userData?.role === 'admin' || userData?.role === 'instructor') return;
     setStudentBookingsLoading(true);
     try {
       const q = query(collection(db, 'bookings'), where('tenantId', '==', getTenantId()), where('userId', '==', user.uid));
@@ -829,7 +845,65 @@ export function Dashboard() {
       setAllPaymentsLoading(false);
     }
   };
+  const fetchWellnessItems = async () => {
+    setWellnessLoading(true);
+    try {
+      const q = query(
+        collection(db, 'wellness_library'),
+        where('tenantId', '==', getTenantId()),
+        orderBy('createdAt', 'desc')
+      );
+      const snap = await getDocs(q);
+      const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setWellnessItems(items);
+    } catch (err) {
+      console.warn("Error fetching wellness items:", err);
+    } finally {
+      setWellnessLoading(false);
+    }
+  };
 
+  const handleSaveWellnessItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!wellnessTitle.trim() || !wellnessUrl.trim()) {
+      alert("Por favor completa el título y la URL.");
+      return;
+    }
+    setSavingWellness(true);
+    try {
+      const newItem = {
+        tenantId: getTenantId(),
+        title: wellnessTitle,
+        duration: wellnessDuration || '15 min',
+        category: wellnessCategory || 'Calma',
+        url: wellnessUrl,
+        createdAt: new Date().toISOString()
+      };
+      await addDoc(collection(db, 'wellness_library'), newItem);
+      setWellnessTitle('');
+      setWellnessDuration('');
+      setWellnessCategory('');
+      setWellnessUrl('');
+      fetchWellnessItems();
+      alert("¡Contenido agregado correctamente!");
+    } catch (err) {
+      console.error("Error saving wellness item:", err);
+      alert("Error al guardar el contenido.");
+    } finally {
+      setSavingWellness(false);
+    }
+  };
+
+  const handleDeleteWellnessItem = async (id: string) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este contenido de la biblioteca?")) return;
+    try {
+      await deleteDoc(doc(db, 'wellness_library', id));
+      fetchWellnessItems();
+    } catch (err) {
+      console.error("Error deleting wellness item:", err);
+      alert("No se pudo eliminar el contenido.");
+    }
+  };
   const openDetailsModal = (student: UserData) => {
     setSelectedStudentForDetails(student);
     setExpedienteTab('info');
@@ -862,12 +936,14 @@ export function Dashboard() {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (userData?.role === 'admin') {
+    if (userData?.role === 'admin' || userData?.role === 'instructor') {
       fetchClasses();
       fetchUsers();
       fetchRetreats();
+      fetchWellnessItems();
     } else if (user) {
       fetchStudentBookings();
+      fetchWellnessItems();
     }
   }, [userData, user]);
 
@@ -1357,6 +1433,38 @@ export function Dashboard() {
         </div>
       )}
 
+      {/* MODAL REPRODUCTOR DE VIDEO DE LA BIBLIOTECA */}
+      {isPlayerOpen && selectedVideoUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-3xl rounded-[32px] border-[8px] border-white bg-gris shadow-2xl relative overflow-hidden"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setIsPlayerOpen(false);
+                setSelectedVideoUrl(null);
+              }}
+              className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 p-2 rounded-full text-white cursor-pointer transition-colors z-20"
+              title="Cerrar reproductor"
+            >
+              ✕
+            </button>
+            <div className="relative pt-[56.25%] w-full h-0">
+              <iframe
+                src={`https://www.youtube.com/embed/${selectedVideoUrl}?autoplay=1`}
+                title="Reproductor de Video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute top-0 left-0 w-full h-full border-none"
+              ></iframe>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* MODAL PARA REGISTRAR PAGOS Y SUSCRIPCIONES */}
       {isPaymentModalOpen && selectedUserForPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
@@ -1523,10 +1631,10 @@ export function Dashboard() {
         >
           <div>
             <span className="mb-2 block text-[10px] font-bold tracking-[0.3em] uppercase text-terracota">
-              {userData.role === 'admin' ? 'Consola de Control' : 'Tu Santuario'}
+              {(userData.role === 'admin' || userData.role === 'instructor') ? 'Consola de Control' : 'Tu Santuario'}
             </span>
             <h1 className="mb-2 font-serif text-5xl font-medium text-gris">
-              {userData.role === 'admin' ? 'Administración' : 'Mi Espacio'}
+              {(userData.role === 'admin' || userData.role === 'instructor') ? 'Administración' : 'Mi Espacio'}
             </h1>
             <p className="text-lg text-gris/70">Hola, <span className="italic font-serif">{userData.name}</span>. Bienvenido a tu panel de control.</p>
           </div>
@@ -1535,8 +1643,8 @@ export function Dashboard() {
           </Button>
         </motion.div>
 
-        {/* TABS DE ADMINISTRACIÓN (SOLO ADMIN) */}
-        {userData.role === 'admin' && (
+        {/* TABS DE ADMINISTRACIÓN (SOLO ADMIN E INSTRUCTOR) */}
+        {(userData.role === 'admin' || userData.role === 'instructor') && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1561,52 +1669,81 @@ export function Dashboard() {
                   Retiros
                 </button>
                 <button
-                  onClick={() => setActiveTab('home')}
+                  onClick={() => {
+                    setActiveTab('students');
+                    fetchUsers();
+                  }}
                   className={`rounded-full px-6 py-3 transition-all shrink-0 ${
-                    activeTab === 'home' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                    activeTab === 'students' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
                   }`}
                 >
-                  Personalizar Inicio
+                  Estudiantes
                 </button>
                 <button
-                  onClick={() => setActiveTab('users')}
+                  onClick={() => {
+                    setActiveTab('library');
+                    fetchWellnessItems();
+                  }}
                   className={`rounded-full px-6 py-3 transition-all shrink-0 ${
-                    activeTab === 'users' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                    activeTab === 'library' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
                   }`}
                 >
-                  Colaboradores
+                  Biblioteca de Bienestar
                 </button>
-                <button
-                  onClick={() => setActiveTab('subscriptions')}
-                  className={`rounded-full px-6 py-3 transition-all shrink-0 ${
-                    activeTab === 'subscriptions' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
-                  }`}
-                >
-                  Suscripciones & Caja
-                </button>
-                {tenantInfo?.subscriptionPlan === 'enterprise' && (
-                  <button
-                    onClick={() => {
-                      setActiveTab('business_metrics');
-                      fetchAllPaymentsForBusiness();
-                    }}
-                    className={`rounded-full px-6 py-3 transition-all shrink-0 ${
-                      activeTab === 'business_metrics' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
-                    }`}
-                  >
-                    Métricas de Negocio
-                  </button>
+
+                {userData.role === 'admin' && (
+                  <>
+                    <button
+                      onClick={() => setActiveTab('home')}
+                      className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                        activeTab === 'home' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                      }`}
+                    >
+                      Personalizar Inicio
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('users')}
+                      className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                        activeTab === 'users' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                      }`}
+                    >
+                      Colaboradores
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('subscriptions')}
+                      className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                        activeTab === 'subscriptions' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                      }`}
+                    >
+                      Suscripciones & Caja
+                    </button>
+                    {tenantInfo?.subscriptionPlan === 'enterprise' && (
+                      <button
+                        onClick={() => {
+                          setActiveTab('business_metrics');
+                          fetchAllPaymentsForBusiness();
+                        }}
+                        className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                          activeTab === 'business_metrics' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                        }`}
+                      >
+                        Métricas de Negocio
+                      </button>
+                    )}
+                  </>
                 )}
               </>
             )}
-            <button
-              onClick={() => setActiveTab('saas_billing')}
-              className={`rounded-full px-6 py-3 transition-all shrink-0 ${
-                activeTab === 'saas_billing' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
-              }`}
-            >
-              Suscripción SaaS
-            </button>
+            {userData.role === 'admin' && (
+              <button
+                onClick={() => setActiveTab('saas_billing')}
+                className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                  activeTab === 'saas_billing' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                }`}
+              >
+                Suscripción SaaS
+              </button>
+            )}
           </motion.div>
         )}
 
@@ -1735,7 +1872,7 @@ export function Dashboard() {
             className="md:col-span-2 space-y-8 min-w-0 w-full"
           >
             {/* TABS DE ADMINISTACIÓN CONTENIDO CONTRASTADO */}
-            {userData.role === 'admin' && (
+            {(userData.role === 'admin' || userData.role === 'instructor') && (
               <>
                 {/* 1. GESTIÓN DE CLASES */}
                 {activeTab === 'classes' && (
@@ -2632,6 +2769,162 @@ export function Dashboard() {
                     </CardContent>
                   </Card>
                 )}
+
+                {activeTab === 'students' && (
+                  <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden animate-fadeIn">
+                    <CardHeader className="px-8 pt-8 pb-4">
+                      <CardTitle className="font-serif text-2xl text-gris">Estudiantes del Estudio</CardTitle>
+                      <p className="text-xs text-gris/60">Lista de alumnos de yoga. Registra valoraciones de flexibilidad, fuerza y equilibrio.</p>
+                    </CardHeader>
+                    <CardContent className="px-8 pb-8">
+                      {usersLoading ? (
+                        <div className="flex justify-center py-8">
+                          <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                        </div>
+                      ) : users.filter(u => u.role === 'student').length > 0 ? (
+                        <div className="divide-y divide-gris/10 max-h-[500px] overflow-y-auto pr-2">
+                          {users.filter(u => u.role === 'student').map((u) => (
+                            <div key={u.uid} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div>
+                                <h4 className="font-serif text-lg text-gris font-medium">{u.name || 'Alumno'}</h4>
+                                <p className="text-xs text-gris/60">{u.email}</p>
+                                <p className="text-[10px] text-terracota font-bold uppercase mt-1">
+                                  Membresía: <span className={u.subscriptionActive ? 'text-salvia' : 'text-red-500'}>{u.subscriptionActive ? 'Activa' : 'Inactiva'}</span>
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  onClick={() => {
+                                    openDetailsModal(u);
+                                    setExpedienteTab('progress');
+                                  }}
+                                  className="rounded-full bg-salvia px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md cursor-pointer"
+                                >
+                                  Valorar Progreso
+                                </Button>
+                                <Button 
+                                  variant="outline"
+                                  onClick={() => {
+                                    openDetailsModal(u);
+                                    setExpedienteTab('info');
+                                  }}
+                                  className="rounded-full border border-arena px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gris hover:bg-arena"
+                                >
+                                  Ver Expediente
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gris/60 text-sm">
+                          No hay alumnos registrados en este estudio.
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {activeTab === 'library' && (
+                  <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden animate-fadeIn">
+                    <CardHeader className="px-8 pt-8 pb-4">
+                      <CardTitle className="font-serif text-2xl text-gris">Biblioteca de Bienestar</CardTitle>
+                      <p className="text-xs text-gris/60">Gestiona el material audiovisual y meditaciones de tu estudio.</p>
+                    </CardHeader>
+                    <CardContent className="px-8 pb-8 space-y-8">
+                      {/* Formulario de subida */}
+                      <div className="bg-arena/20 p-6 rounded-[24px] border border-arena/30 space-y-4">
+                        <h4 className="font-serif text-lg text-terracota font-bold">Subir Nuevo Contenido</h4>
+                        <form onSubmit={handleSaveWellnessItem} className="grid gap-4 md:grid-cols-2 text-xs">
+                          <div className="space-y-1">
+                            <Label htmlFor="wellTitle" className="text-[10px] font-bold uppercase tracking-widest text-gris opacity-70">Título del Contenido</Label>
+                            <Input 
+                              id="wellTitle"
+                              required
+                              placeholder="Ej. Meditación de la mañana"
+                              value={wellnessTitle}
+                              onChange={(e) => setWellnessTitle(e.target.value)}
+                              className="rounded-xl border-none bg-white px-3 py-2 shadow-inner"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="wellUrl" className="text-[10px] font-bold uppercase tracking-widest text-gris opacity-70">Enlace (YouTube, Vimeo, MP4, etc.)</Label>
+                            <Input 
+                              id="wellUrl"
+                              required
+                              placeholder="https://www.youtube.com/watch?v=..."
+                              value={wellnessUrl}
+                              onChange={(e) => setWellnessUrl(e.target.value)}
+                              className="rounded-xl border-none bg-white px-3 py-2 shadow-inner"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="wellDur" className="text-[10px] font-bold uppercase tracking-widest text-gris opacity-70">Duración (Ej. 15 min)</Label>
+                            <Input 
+                              id="wellDur"
+                              placeholder="Ej. 20 min"
+                              value={wellnessDuration}
+                              onChange={(e) => setWellnessDuration(e.target.value)}
+                              className="rounded-xl border-none bg-white px-3 py-2 shadow-inner"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="wellCat" className="text-[10px] font-bold uppercase tracking-widest text-gris opacity-70">Categoría (Ej. Calma, Fuerza)</Label>
+                            <Input 
+                              id="wellCat"
+                              placeholder="Ej. Relajación"
+                              value={wellnessCategory}
+                              onChange={(e) => setWellnessCategory(e.target.value)}
+                              className="rounded-xl border-none bg-white px-3 py-2 shadow-inner"
+                            />
+                          </div>
+                          <div className="md:col-span-2 flex justify-end">
+                            <Button
+                              type="submit"
+                              disabled={savingWellness}
+                              className="rounded-full bg-salvia px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md cursor-pointer"
+                            >
+                              {savingWellness ? 'Subiendo...' : 'Agregar Contenido'}
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+
+                      {/* Lista de contenidos */}
+                      <div className="space-y-4">
+                        <h4 className="font-serif text-xl text-gris font-medium">Contenidos Disponibles</h4>
+                        {wellnessLoading ? (
+                          <div className="flex justify-center py-6">
+                            <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                          </div>
+                        ) : wellnessItems.length > 0 ? (
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            {wellnessItems.map((item) => (
+                              <div key={item.id} className="bg-arena/20 p-5 rounded-2xl border border-arena/30 flex justify-between items-start gap-4">
+                                <div>
+                                  <h5 className="font-serif text-lg text-gris font-medium line-clamp-1">{item.title}</h5>
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-terracota mt-1">
+                                    {item.duration} • {item.category}
+                                  </p>
+                                  <p className="text-[9px] text-gris/50 truncate max-w-[200px] mt-1 font-mono">{item.url}</p>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleDeleteWellnessItem(item.id)}
+                                  className="p-2 border border-red-200 hover:bg-red-50 text-red-600 rounded-xl cursor-pointer"
+                                >
+                                  Eliminar
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-center py-6 text-xs text-gris/40 italic bg-arena/10 rounded-2xl border border-arena/25">No hay contenido subido a la biblioteca.</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             )}
 
@@ -2686,22 +2979,45 @@ export function Dashboard() {
                     <CardTitle className="font-serif text-2xl text-gris">Biblioteca de Bienestar</CardTitle>
                   </CardHeader>
                   <CardContent className="px-8 pb-8">
-                    <div className="grid gap-6 sm:grid-cols-2">
-                        <div className="group rounded-[24px] bg-arena p-8 cursor-pointer hover:bg-salvia/10 transition-colors border border-transparent hover:border-salvia/20">
-                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mb-4 text-salvia group-hover:scale-110 transition-transform">
-                              ▶
+                    {wellnessLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                      </div>
+                    ) : wellnessItems.length > 0 ? (
+                      <div className="grid gap-6 sm:grid-cols-2">
+                        {wellnessItems.map((item) => {
+                          const ytId = getYouTubeId(item.url);
+                          return (
+                            <div 
+                              key={item.id} 
+                              onClick={() => {
+                                if (ytId) {
+                                  setSelectedVideoUrl(ytId);
+                                  setIsPlayerOpen(true);
+                                } else {
+                                  window.open(item.url, '_blank');
+                                }
+                              }}
+                              className="group rounded-[24px] bg-arena p-8 cursor-pointer hover:bg-salvia/10 transition-colors border border-transparent hover:border-salvia/20 flex flex-col justify-between min-h-[160px]"
+                            >
+                              <div>
+                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mb-4 text-salvia group-hover:scale-110 transition-transform shadow-sm">
+                                  ▶
+                                </div>
+                                <h4 className="font-serif text-xl text-gris mb-2 group-hover:text-salvia transition-colors">{item.title}</h4>
+                              </div>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-terracota">
+                                {item.duration} • {item.category}
+                              </p>
                             </div>
-                            <h4 className="font-serif text-xl text-gris mb-2">Meditación Guiada</h4>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-terracota">15 min • Calma</p>
-                        </div>
-                        <div className="group rounded-[24px] bg-arena p-8 cursor-pointer hover:bg-salvia/10 transition-colors border border-transparent hover:border-salvia/20">
-                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mb-4 text-salvia group-hover:scale-110 transition-transform">
-                              ▶
-                            </div>
-                            <h4 className="font-serif text-xl text-gris mb-2">Yoga para dormir</h4>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-terracota">30 min • Relajación</p>
-                        </div>
-                    </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-gris/50 text-xs">
+                        Aún no se ha subido contenido a la biblioteca del estudio. ¡Pronto verás videos y meditaciones aquí!
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </>
