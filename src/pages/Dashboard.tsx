@@ -49,6 +49,204 @@ interface Retreat {
   image: string;
   description: string;
 }
+function RadarChart({ scores }: { scores: { flexibility: number; strength: number; balance: number; endurance: number; mindfulness: number } }) {
+  const CX = 100;
+  const CY = 100;
+  const R = 60;
+  
+  const categories = [
+    { name: 'Flexibilidad', key: 'flexibility', angle: 0 },
+    { name: 'Fuerza', key: 'strength', angle: 72 },
+    { name: 'Equilibrio', key: 'balance', angle: 144 },
+    { name: 'Resistencia', key: 'endurance', angle: 216 },
+    { name: 'Enfoque', key: 'mindfulness', angle: 288 }
+  ];
+
+  const getCoordinates = (index: number, value: number, radiusMultiplier = 1) => {
+    const angleRad = (categories[index].angle * Math.PI) / 180;
+    const r = R * (value / 10) * radiusMultiplier;
+    return {
+      x: CX + r * Math.sin(angleRad),
+      y: CY - r * Math.cos(angleRad)
+    };
+  };
+
+  const levels = [2, 4, 6, 8, 10];
+  
+  const dataPoints = categories.map((cat, idx) => {
+    const val = (scores as any)[cat.key] || 0;
+    const { x, y } = getCoordinates(idx, val);
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <div className="flex flex-col items-center justify-center p-4 bg-white/40 rounded-3xl border border-arena/20 shadow-inner w-full">
+      <svg viewBox="0 0 200 200" className="w-full max-w-[190px] h-auto">
+        {/* Grids */}
+        {levels.map((level) => {
+          const points = categories.map((cat, idx) => {
+            const { x, y } = getCoordinates(idx, level);
+            return `${x},${y}`;
+          }).join(' ');
+          return (
+            <polygon
+              key={level}
+              points={points}
+              fill="none"
+              stroke="var(--color-salvia, #8b9c86)"
+              strokeWidth="0.5"
+              strokeDasharray={level === 10 ? '0' : '2,2'}
+              className="opacity-30"
+            />
+          );
+        })}
+
+        {/* Axis lines */}
+        {categories.map((cat, idx) => {
+          const outer = getCoordinates(idx, 10);
+          return (
+            <line
+              key={cat.key}
+              x1={CX}
+              y1={CY}
+              x2={outer.x}
+              y2={outer.y}
+              stroke="var(--color-salvia, #8b9c86)"
+              strokeWidth="0.5"
+              className="opacity-30"
+            />
+          );
+        })}
+
+        {/* Data area */}
+        {dataPoints && (
+          <polygon
+            points={dataPoints}
+            fill="var(--color-salvia, #8b9c86)"
+            stroke="var(--color-salvia, #8b9c86)"
+            strokeWidth="1.5"
+            className="fill-salvia/30 stroke-salvia drop-shadow-sm"
+          />
+        )}
+
+        {/* Data points dots */}
+        {categories.map((cat, idx) => {
+          const val = (scores as any)[cat.key] || 0;
+          const { x, y } = getCoordinates(idx, val);
+          return (
+            <circle
+              key={cat.key}
+              cx={x}
+              cy={y}
+              r="2"
+              fill="var(--color-terracota, #c08575)"
+              stroke="white"
+              strokeWidth="0.5"
+            />
+          );
+        })}
+
+        {/* Text Labels */}
+        {categories.map((cat, idx) => {
+          const outer = getCoordinates(idx, 10, 1.25);
+          let textAnchor: 'middle' | 'start' | 'end' = 'middle';
+          let dy = '0.35em';
+          
+          if (cat.angle === 0) dy = '-0.5em';
+          else if (cat.angle === 180) dy = '1em';
+          else if (cat.angle > 0 && cat.angle < 180) textAnchor = 'start';
+          else if (cat.angle > 180 && cat.angle < 360) textAnchor = 'end';
+
+          return (
+            <text
+              key={cat.key}
+              x={outer.x}
+              y={outer.y}
+              textAnchor={textAnchor}
+              dy={dy}
+              className="text-[6.5px] font-bold fill-gris/85 uppercase tracking-wider"
+            >
+              {cat.name}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function ProgressLineChart({ logs }: { logs: any[] }) {
+  if (logs.length < 2) {
+    return <p className="text-center text-xs text-gris/40 py-8 italic bg-white/30 rounded-2xl border border-arena/10">Se necesitan al menos 2 valoraciones para trazar tu línea de progreso.</p>;
+  }
+
+  const width = 300;
+  const height = 120;
+  const paddingLeft = 30;
+  const paddingRight = 20;
+  const paddingTop = 15;
+  const paddingBottom = 25;
+
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+
+  const pointsData = logs.map((log, idx) => {
+    const scores = log.scores;
+    const avg = (scores.flexibility + scores.strength + scores.balance + scores.endurance + scores.mindfulness) / 5;
+    const x = paddingLeft + (idx / (logs.length - 1)) * chartWidth;
+    const y = paddingTop + chartHeight - ((avg - 1) / 9) * chartHeight;
+    return { x, y, avg, date: format(new Date(log.date), 'dd/MM') };
+  });
+
+  const pathD = pointsData.reduce((acc, p, idx) => {
+    return acc + `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`;
+  }, '');
+
+  return (
+    <div className="p-4 bg-white/40 rounded-3xl border border-arena/20 shadow-inner w-full">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
+        {/* Grid lines */}
+        {[1, 5, 10].map((val) => {
+          const y = paddingTop + chartHeight - ((val - 1) / 9) * chartHeight;
+          return (
+            <g key={val} className="opacity-25">
+              <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="var(--color-gris, #433e3f)" strokeWidth="0.5" strokeDasharray="2,2" />
+              <text x={10} y={y + 2.5} className="text-[6.5px] font-bold fill-gris">{val}</text>
+            </g>
+          );
+        })}
+
+        {/* The progress line */}
+        <path
+          d={pathD}
+          fill="none"
+          stroke="var(--color-salvia, #8b9c86)"
+          strokeWidth="1.75"
+        />
+
+        {/* Data points */}
+        {pointsData.map((p, idx) => (
+          <g key={idx}>
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r="2.5"
+              fill="var(--color-terracota, #c08575)"
+              stroke="white"
+              strokeWidth="0.5"
+            />
+            <text x={p.x} y={p.y - 5} textAnchor="middle" className="text-[5.5px] font-bold fill-gris">
+              {p.avg.toFixed(1)}
+            </text>
+            <text x={p.x} y={height - 8} textAnchor="middle" className="text-[5.5px] font-semibold fill-gris/50">
+              {p.date}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
 
 export function Dashboard() {
   const { user, userData, loading } = useAuthStore();
@@ -101,8 +299,27 @@ export function Dashboard() {
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  // Student Progress States
+  const [isStudentProgressOpen, setIsStudentProgressOpen] = useState(false);
+  const [progressLogs, setProgressLogs] = useState<any[]>([]);
+  const [progressLoading, setProgressLoading] = useState(false);
+  const [savingProgress, setSavingProgress] = useState(false);
+  const [expedienteTab, setExpedienteTab] = useState<'info' | 'progress'>('info');
+
+  // Progress rating form states
+  const [flexibility, setFlexibility] = useState(5);
+  const [strength, setStrength] = useState(5);
+  const [balance, setBalance] = useState(5);
+  const [endurance, setEndurance] = useState(5);
+  const [mindfulness, setMindfulness] = useState(5);
+  const [progressNotes, setProgressNotes] = useState('');
+
+  // Business metrics states
+  const [allPayments, setAllPayments] = useState<any[]>([]);
+  const [allPaymentsLoading, setAllPaymentsLoading] = useState(false);
+
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'classes' | 'retreats' | 'home' | 'users' | 'subscriptions' | 'saas_billing'>('classes');
+  const [activeTab, setActiveTab] = useState<'classes' | 'retreats' | 'home' | 'users' | 'subscriptions' | 'saas_billing' | 'business_metrics'>('classes');
 
   const { tenantInfo } = useTenantStore();
 
@@ -540,9 +757,86 @@ export function Dashboard() {
     }
   };
 
+  const fetchStudentProgress = async (studentId: string) => {
+    setProgressLoading(true);
+    try {
+      const q = query(
+        collection(db, 'progress_logs'),
+        where('tenantId', '==', getTenantId()),
+        where('userId', '==', studentId),
+        orderBy('date', 'asc')
+      );
+      const snap = await getDocs(q);
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProgressLogs(fetched);
+    } catch (err) {
+      console.error("Error fetching progress logs:", err);
+    } finally {
+      setProgressLoading(false);
+    }
+  };
+
+  const handleSaveProgressLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudentForDetails) return;
+    setSavingProgress(true);
+    try {
+      const newLog = {
+        userId: selectedStudentForDetails.uid,
+        tenantId: getTenantId(),
+        date: new Date().toISOString(),
+        instructorName: userData?.name || 'Instructor',
+        scores: {
+          flexibility: Number(flexibility),
+          strength: Number(strength),
+          balance: Number(balance),
+          endurance: Number(endurance),
+          mindfulness: Number(mindfulness)
+        },
+        notes: progressNotes
+      };
+      await addDoc(collection(db, 'progress_logs'), newLog);
+      setProgressNotes('');
+      setFlexibility(5);
+      setStrength(5);
+      setBalance(5);
+      setEndurance(5);
+      setMindfulness(5);
+      fetchStudentProgress(selectedStudentForDetails.uid);
+      alert("¡Valoración de progreso guardada con éxito!");
+    } catch (err) {
+      console.error("Error saving progress log:", err);
+      alert("Error al guardar la valoración de progreso.");
+    } finally {
+      setSavingProgress(false);
+    }
+  };
+
+  const fetchAllPaymentsForBusiness = async () => {
+    setAllPaymentsLoading(true);
+    try {
+      const q = query(
+        collection(db, 'payments'),
+        where('tenantId', '==', getTenantId()),
+        orderBy('date', 'desc')
+      );
+      const snap = await getDocs(q);
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setAllPayments(fetched);
+    } catch (err) {
+      console.error("Error fetching all payments for business metrics:", err);
+    } finally {
+      setAllPaymentsLoading(false);
+    }
+  };
+
   const openDetailsModal = (student: UserData) => {
     setSelectedStudentForDetails(student);
+    setExpedienteTab('info');
     fetchPaymentHistory(student.uid);
+    if (tenantInfo?.subscriptionPlan === 'premium' || tenantInfo?.subscriptionPlan === 'enterprise') {
+      fetchStudentProgress(student.uid);
+    }
     setIsDetailsModalOpen(true);
   };
 
@@ -655,6 +949,90 @@ export function Dashboard() {
     );
   }
 
+  // Business metrics computations
+  const last30DaysPayments = allPayments.filter(p => {
+    if (!p.date) return false;
+    const pDate = new Date(p.date);
+    const diff = Date.now() - pDate.getTime();
+    return diff <= 30 * 24 * 60 * 60 * 1000;
+  });
+  const mrr = last30DaysPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+  const activeStudentsCount = users.filter(u => u.role === 'student' && u.subscriptionActive).length;
+  const totalStudentsCount = users.filter(u => u.role === 'student').length;
+
+  const newStudentsLast30Days = users.filter(u => {
+    if (u.role !== 'student' || !u.createdAt) return false;
+    const uDate = new Date(u.createdAt);
+    const diff = Date.now() - uDate.getTime();
+    return diff <= 30 * 24 * 60 * 60 * 1000;
+  }).length;
+
+  let totalClassCapacity = 0;
+  let totalBookingsCount = 0;
+  classes.forEach(c => {
+    totalClassCapacity += c.capacity || 0;
+    totalBookingsCount += bookings[c.id]?.length || 0;
+  });
+  const bookingRate = totalClassCapacity > 0 ? ((totalBookingsCount / totalClassCapacity) * 100).toFixed(1) : '0';
+
+  const getMonthlyRevenueData = () => {
+    const monthlySums: Record<string, number> = {};
+    const monthsList = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const key = format(d, 'yyyy-MM');
+      const label = format(d, 'MMM', { locale: es });
+      monthlySums[key] = 0;
+      monthsList.push({ key, label });
+    }
+
+    allPayments.forEach(p => {
+      if (!p.date) return;
+      const key = p.date.substring(0, 7); // YYYY-MM
+      if (monthlySums[key] !== undefined) {
+        monthlySums[key] += p.amount || 0;
+      }
+    });
+
+    return monthsList.map(m => ({ label: m.label, value: monthlySums[m.key] }));
+  };
+  const revenueData = getMonthlyRevenueData();
+
+  const getClassPopularityData = () => {
+    const counts: Record<string, number> = {};
+    classes.forEach(c => {
+      const title = c.title || 'Clase';
+      counts[title] = (counts[title] || 0) + (bookings[c.id]?.length || 0);
+    });
+    const sorted = Object.entries(counts)
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+    return sorted;
+  };
+  const classPopularity = getClassPopularityData();
+
+  const getPopularHoursData = () => {
+    const counts: Record<string, number> = {};
+    classes.forEach(c => {
+      if (!c.date) return;
+      try {
+        const hour = format(new Date(c.date), 'HH:00');
+        counts[hour] = (counts[hour] || 0) + (bookings[c.id]?.length || 0);
+      } catch (err) {
+        // ignore invalid date
+      }
+    });
+    const sorted = Object.entries(counts)
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+    return sorted;
+  };
+  const popularHours = getPopularHoursData();
+
   if (!userData) return null;
 
   return (
@@ -683,70 +1061,206 @@ export function Dashboard() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-lg rounded-[32px] border-[8px] border-white bg-arena shadow-xl p-8 relative overflow-hidden"
+            className={`w-full ${(tenantInfo?.subscriptionPlan === 'premium' || tenantInfo?.subscriptionPlan === 'enterprise') ? 'max-w-3xl' : 'max-w-lg'} rounded-[32px] border-[8px] border-white bg-arena shadow-xl p-8 relative overflow-hidden`}
           >
-            <h3 className="font-serif text-2xl text-gris mb-1">Expediente de Suscripción</h3>
-            <p className="text-xs text-gris/60 mb-6">Detalles de: <span className="font-bold text-salvia">{selectedStudentForDetails.name}</span></p>
+            <h3 className="font-serif text-2xl text-gris mb-1">Expediente del Alumno</h3>
+            <p className="text-xs text-gris/60 mb-4">Detalles de: <span className="font-bold text-salvia">{selectedStudentForDetails.name}</span></p>
 
-            <div className="space-y-6 text-sm text-gris/85">
-              {/* Info de ingreso y antigüedad */}
-              <div className="bg-white/60 p-4 rounded-2xl border border-white">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Ingreso y Antigüedad</p>
-                <p className="font-medium text-gris">{calculateMembershipDuration(selectedStudentForDetails.createdAt)}</p>
+            {/* Selector de pestañas */}
+            {(tenantInfo?.subscriptionPlan === 'premium' || tenantInfo?.subscriptionPlan === 'enterprise') && (
+              <div className="flex gap-2 mb-6 border-b border-white/40 pb-3">
+                <button
+                  type="button"
+                  onClick={() => setExpedienteTab('info')}
+                  className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${
+                    expedienteTab === 'info' ? 'bg-salvia text-white shadow-sm' : 'bg-white/40 text-gris/70 hover:bg-white/60'
+                  }`}
+                >
+                  Membresía & Caja
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExpedienteTab('progress')}
+                  className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${
+                    expedienteTab === 'progress' ? 'bg-salvia text-white shadow-sm' : 'bg-white/40 text-gris/70 hover:bg-white/60'
+                  }`}
+                >
+                  Progreso & Valoración
+                </button>
               </div>
+            )}
 
-              {/* Info del plan activo */}
-              <div className="grid grid-cols-2 gap-4">
+            {/* CONTENIDO PESTAÑA INFORMACIÓN / CAJA */}
+            {(expedienteTab === 'info' || !(tenantInfo?.subscriptionPlan === 'premium' || tenantInfo?.subscriptionPlan === 'enterprise')) && (
+              <div className="space-y-6 text-sm text-gris/85">
+                {/* Info de ingreso y antigüedad */}
                 <div className="bg-white/60 p-4 rounded-2xl border border-white">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Saldo de Clases</p>
-                  <p className="text-lg font-bold text-gris">
-                    {selectedStudentForDetails.unlimitedClasses ? 'Acceso Ilimitado' : `${selectedStudentForDetails.classesRemaining || 0} disponibles`}
-                  </p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Ingreso y Antigüedad</p>
+                  <p className="font-medium text-gris">{calculateMembershipDuration(selectedStudentForDetails.createdAt)}</p>
                 </div>
-                <div className="bg-white/60 p-4 rounded-2xl border border-white">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Vencimiento del Pase</p>
-                  <p className="text-lg font-medium text-gris">
-                    {selectedStudentForDetails.subscriptionExpiry ? format(new Date(selectedStudentForDetails.subscriptionExpiry), 'dd/MM/yyyy') : 'N/A'}
-                  </p>
-                </div>
-              </div>
 
-              {/* Historial de Pagos / Caja */}
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-2">Historial de Pagos (Caja)</p>
-                
-                {historyLoading ? (
-                  <div className="flex justify-center py-6">
-                    <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                {/* Info del plan activo */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/60 p-4 rounded-2xl border border-white">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Saldo de Clases</p>
+                    <p className="text-lg font-bold text-gris">
+                      {selectedStudentForDetails.unlimitedClasses ? 'Acceso Ilimitado' : `${selectedStudentForDetails.classesRemaining || 0} disponibles`}
+                    </p>
                   </div>
-                ) : paymentHistory.length > 0 ? (
-                  <div className="border border-arena/40 rounded-2xl overflow-hidden bg-white/50 max-h-[160px] overflow-y-auto pr-1">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="bg-arena/30 text-gris/60 border-b border-arena/20 font-bold uppercase tracking-wider sticky top-0 z-10">
-                          <th className="p-3">Fecha</th>
-                          <th className="p-3">Plan</th>
-                          <th className="p-3">Monto</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-arena/10">
-                        {paymentHistory.map((h) => (
-                          <tr key={h.id} className="text-gris/85">
-                            <td className="p-3 font-medium">{format(new Date(h.date), 'dd/MM/yyyy')}</td>
-                            <td className="p-3">{h.planType}</td>
-                            <td className="p-3 font-bold text-salvia">${h.amount} USD</td>
+                  <div className="bg-white/60 p-4 rounded-2xl border border-white">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Vencimiento del Pase</p>
+                    <p className="text-lg font-medium text-gris">
+                      {selectedStudentForDetails.subscriptionExpiry ? format(new Date(selectedStudentForDetails.subscriptionExpiry), 'dd/MM/yyyy') : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Historial de Pagos / Caja */}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-2">Historial de Pagos (Caja)</p>
+                  
+                  {historyLoading ? (
+                    <div className="flex justify-center py-6">
+                      <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                    </div>
+                  ) : paymentHistory.length > 0 ? (
+                    <div className="border border-arena/40 rounded-2xl overflow-hidden bg-white/50 max-h-[160px] overflow-y-auto pr-1">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-arena/30 text-gris/60 border-b border-arena/20 font-bold uppercase tracking-wider sticky top-0 z-10">
+                            <th className="p-3">Fecha</th>
+                            <th className="p-3">Plan</th>
+                            <th className="p-3">Monto</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-center py-6 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">No se han registrado pagos para este alumno.</p>
-                )}
+                        </thead>
+                        <tbody className="divide-y divide-arena/10">
+                          {paymentHistory.map((h) => (
+                            <tr key={h.id} className="text-gris/85">
+                              <td className="p-3 font-medium">{format(new Date(h.date), 'dd/MM/yyyy')}</td>
+                              <td className="p-3">{h.planType}</td>
+                              <td className="p-3 font-bold text-salvia">${h.amount} USD</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-center py-6 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">No se han registrado pagos para este alumno.</p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="flex justify-end pt-6">
+            {/* CONTENIDO PESTAÑA PROGRESO & VALORACIONES (PREMIUM & ENTERPRISE) */}
+            {expedienteTab === 'progress' && (tenantInfo?.subscriptionPlan === 'premium' || tenantInfo?.subscriptionPlan === 'enterprise') && (
+              <div className="grid gap-6 md:grid-cols-2 max-h-[55vh] overflow-y-auto pr-2 no-scrollbar">
+                {/* Columna Izquierda: Gráficos e Historial */}
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-2">Estado Físico & Mental</h4>
+                    {progressLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                      </div>
+                    ) : progressLogs.length > 0 ? (
+                      <RadarChart scores={progressLogs[progressLogs.length - 1].scores} />
+                    ) : (
+                      <div className="text-center py-10 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">
+                        Sin valoraciones corporales aún.
+                      </div>
+                    )}
+                  </div>
+
+                  {progressLogs.length >= 2 && (
+                    <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-2">Evolución Temporal</h4>
+                      <ProgressLineChart logs={progressLogs} />
+                    </div>
+                  )}
+
+                  <div>
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-2">Historial de Evaluaciones</h4>
+                    {progressLogs.length > 0 ? (
+                      <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                        {[...progressLogs].reverse().map((log) => (
+                          <div key={log.id} className="bg-white/60 p-4 rounded-2xl border border-white text-xs space-y-2 shadow-sm">
+                            <div className="flex justify-between items-center font-bold text-gris">
+                              <span>{format(new Date(log.date), 'dd/MM/yyyy')}</span>
+                              <span className="text-[9px] text-salvia bg-salvia/10 px-2 py-0.5 rounded-full">Doc: {log.instructorName}</span>
+                            </div>
+                            {log.notes && <p className="text-gris/75 italic leading-relaxed">"{log.notes}"</p>}
+                            <div className="grid grid-cols-5 gap-1 text-[8px] font-bold text-gris/60 text-center uppercase tracking-tighter pt-2 border-t border-arena/25">
+                              <div>Flex: {log.scores.flexibility}</div>
+                              <div>Fuerza: {log.scores.strength}</div>
+                              <div>Equil: {log.scores.balance}</div>
+                              <div>Resis: {log.scores.endurance}</div>
+                              <div>Enfoq: {log.scores.mindfulness}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center py-6 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">No hay comentarios ni valoraciones previas.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Columna Derecha: Formulario para añadir nueva valoración */}
+                <div className="bg-white/50 p-5 rounded-2xl border border-white/60 shadow-inner h-fit space-y-4">
+                  <div>
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Registrar Valoración</h4>
+                    <p className="text-[10px] text-gris/60 leading-relaxed mt-0.5">Evalúa el rendimiento físico e introspectivo de la práctica del alumno de 1 a 10.</p>
+                  </div>
+
+                  <form onSubmit={handleSaveProgressLog} className="space-y-4">
+                    {[
+                      { label: 'Flexibilidad', state: flexibility, set: setFlexibility },
+                      { label: 'Fuerza Física', state: strength, set: setStrength },
+                      { label: 'Equilibrio / Postura', state: balance, set: setBalance },
+                      { label: 'Resistencia / Respiración', state: endurance, set: setEndurance },
+                      { label: 'Enfoque / Paz Mental', state: mindfulness, set: setMindfulness },
+                    ].map((item) => (
+                      <div key={item.label} className="space-y-1">
+                        <div className="flex justify-between font-bold text-[9px] uppercase tracking-wider text-gris">
+                          <span>{item.label}</span>
+                          <span className="text-terracota">{item.state} / 10</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={item.state}
+                          onChange={(e) => item.set(Number(e.target.value))}
+                          className="w-full accent-salvia cursor-pointer h-1 bg-arena/70 rounded-lg appearance-none"
+                        />
+                      </div>
+                    ))}
+
+                    <div className="space-y-1">
+                      <Label htmlFor="progressNotesInput" className="text-[9px] font-bold uppercase tracking-widest text-gris opacity-70">Instrucciones y Observaciones</Label>
+                      <textarea
+                        id="progressNotesInput"
+                        rows={3}
+                        placeholder="Escribe recomendaciones, posturas a practicar o felicitaciones..."
+                        value={progressNotes}
+                        onChange={(e) => setProgressNotes(e.target.value)}
+                        className="flex w-full rounded-xl border-none bg-white/70 px-3 py-2 text-xs shadow-inner focus:outline-none focus:ring-1 focus:ring-salvia"
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={savingProgress}
+                      className="w-full rounded-full bg-salvia py-3.5 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md cursor-pointer"
+                    >
+                      {savingProgress ? 'Guardando Valoración...' : 'Registrar Valoración'}
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-6 border-t border-white/20 mt-6">
               <Button
                 onClick={() => {
                   setIsDetailsModalOpen(false);
@@ -755,6 +1269,88 @@ export function Dashboard() {
                 className="rounded-full bg-gris px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia shadow-sm"
               >
                 Cerrar Expediente
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* MODAL REPORTE DE PROGRESO COMPLETO DEL ALUMNO */}
+      {isStudentProgressOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-2xl rounded-[32px] border-[8px] border-white bg-arena shadow-xl p-8 relative overflow-hidden"
+          >
+            <h3 className="font-serif text-3xl text-gris mb-1">Mi Reporte de Progreso</h3>
+            <p className="text-xs text-gris/60 mb-6">Tu camino de aprendizaje en <span className="font-bold text-salvia">{tenantInfo?.name || 'UIO Yoga'}</span></p>
+
+            <div className="grid gap-6 md:grid-cols-2 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
+              {/* Columna Izquierda: Radar y Línea */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-2">Mi Silueta de Práctica</h4>
+                  {progressLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                    </div>
+                  ) : progressLogs.length > 0 ? (
+                    <RadarChart scores={progressLogs[progressLogs.length - 1].scores} />
+                  ) : (
+                    <div className="text-center py-10 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">
+                      Aún no se han registrado valoraciones corporales de tus instructores. ¡Pronto verás tu progreso aquí!
+                    </div>
+                  )}
+                </div>
+
+                {progressLogs.length >= 2 && (
+                  <div>
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-2">Mi Evolución</h4>
+                    <ProgressLineChart logs={progressLogs} />
+                  </div>
+                )}
+              </div>
+
+              {/* Columna Derecha: Historial de Notas de los instructores */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Retroalimentación de mis Instructores</h4>
+                {progressLogs.length > 0 ? (
+                  <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                    {[...progressLogs].reverse().map((log) => (
+                      <div key={log.id} className="bg-white/60 p-4 rounded-2xl border border-white text-xs space-y-2 shadow-sm">
+                        <div className="flex justify-between items-center font-bold text-gris">
+                          <span>{format(new Date(log.date), 'dd/MM/yyyy')}</span>
+                          <span className="text-[9px] text-salvia bg-salvia/10 px-2 py-0.5 rounded-full">Prof: {log.instructorName}</span>
+                        </div>
+                        {log.notes && <p className="text-gris/75 italic leading-relaxed">"{log.notes}"</p>}
+                        <div className="grid grid-cols-5 gap-1 text-[8px] font-bold text-gris/60 text-center uppercase tracking-tighter pt-2 border-t border-arena/25">
+                          <div>Flex: {log.scores.flexibility}</div>
+                          <div>Fuerza: {log.scores.strength}</div>
+                          <div>Equil: {log.scores.balance}</div>
+                          <div>Resis: {log.scores.endurance}</div>
+                          <div>Enfoq: {log.scores.mindfulness}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-5 text-center text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white leading-relaxed">
+                    Tus profesores anotarán sus observaciones y recomendaciones aquí a medida que asistas a más clases.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-6 border-t border-white/20 mt-6">
+              <Button
+                onClick={() => {
+                  setIsStudentProgressOpen(false);
+                  setProgressLogs([]);
+                }}
+                className="rounded-full bg-gris px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia shadow-sm"
+              >
+                Cerrar Reporte
               </Button>
             </div>
           </motion.div>
@@ -988,6 +1584,19 @@ export function Dashboard() {
                 >
                   Suscripciones & Caja
                 </button>
+                {tenantInfo?.subscriptionPlan === 'enterprise' && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('business_metrics');
+                      fetchAllPaymentsForBusiness();
+                    }}
+                    className={`rounded-full px-6 py-3 transition-all shrink-0 ${
+                      activeTab === 'business_metrics' ? 'bg-salvia text-white shadow-md' : 'bg-arena/40 text-gris/70 hover:bg-arena'
+                    }`}
+                  >
+                    Métricas de Negocio
+                  </button>
+                )}
               </>
             )}
             <button
@@ -1102,6 +1711,17 @@ export function Dashboard() {
                              <p className="text-[10px] font-bold uppercase tracking-widest text-terracota">Horas</p>
                          </div>
                      </div>
+                     {(tenantInfo?.subscriptionPlan === 'premium' || tenantInfo?.subscriptionPlan === 'enterprise') && (
+                       <Button 
+                         onClick={() => {
+                           setIsStudentProgressOpen(true);
+                           fetchStudentProgress(user.uid);
+                         }}
+                         className="mt-6 rounded-full bg-salvia px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md w-full cursor-pointer"
+                       >
+                         Ver Reporte Completo
+                       </Button>
+                     )}
                  </CardContent>
               </Card>
             )}
@@ -1856,6 +2476,161 @@ export function Dashboard() {
                       </div>
                     </div>
                   </div>
+                )}
+                {activeTab === 'business_metrics' && tenantInfo?.subscriptionPlan === 'enterprise' && (
+                  <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden animate-fadeIn">
+                    <CardHeader className="px-8 pt-8 pb-4">
+                      <CardTitle className="font-serif text-2xl text-gris">Métricas de Negocio</CardTitle>
+                      <p className="text-xs text-gris/60">Analiza el rendimiento comercial, afluencia y reservas en tu estudio de yoga.</p>
+                    </CardHeader>
+                    <CardContent className="px-8 pb-8 space-y-8">
+                      {/* KPIs grid */}
+                      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+                        <div className="bg-arena/30 p-4 rounded-2xl border border-arena/20 text-center space-y-1">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-terracota">Ingresos (Últ. 30d)</p>
+                          <p className="text-2xl font-serif font-bold text-salvia">${mrr.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-arena/30 p-4 rounded-2xl border border-arena/20 text-center space-y-1">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-terracota">Miembros Activos</p>
+                          <p className="text-2xl font-serif font-bold text-gris">{activeStudentsCount} / {totalStudentsCount}</p>
+                        </div>
+                        <div className="bg-arena/30 p-4 rounded-2xl border border-arena/20 text-center space-y-1">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-terracota">Ocupación Promedio</p>
+                          <p className="text-2xl font-serif font-bold text-gris">{bookingRate}%</p>
+                        </div>
+                        <div className="bg-arena/30 p-4 rounded-2xl border border-arena/20 text-center space-y-1">
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-terracota">Nuevos Alumnos (30d)</p>
+                          <p className="text-2xl font-serif font-bold text-gris">+{newStudentsLast30Days}</p>
+                        </div>
+                      </div>
+
+                      {/* Charts Grid */}
+                      <div className="grid gap-6 md:grid-cols-2">
+                        {/* Revenue line chart */}
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-gris opacity-70">Tendencia de Ingresos Mensuales</h4>
+                          {allPaymentsLoading ? (
+                            <div className="flex justify-center py-10 bg-arena/20 rounded-3xl border border-arena/20">
+                              <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                            </div>
+                          ) : (
+                            <div className="p-4 bg-arena/20 rounded-3xl border border-arena/20 shadow-inner">
+                              {revenueData.some(d => d.value > 0) ? (
+                                <svg viewBox="0 0 350 140" className="w-full h-auto">
+                                  {/* Grid lines */}
+                                  {[0, 0.5, 1].map((ratio) => {
+                                    const maxVal = Math.max(...revenueData.map(d => d.value), 100);
+                                    const val = Math.round(maxVal * ratio);
+                                    const y = 15 + (1 - ratio) * 90;
+                                    return (
+                                      <g key={ratio} className="opacity-25">
+                                        <line x1={35} y1={y} x2={335} y2={y} stroke="var(--color-gris, #433e3f)" strokeWidth="0.5" strokeDasharray="2,2" />
+                                        <text x={5} y={y + 2.5} className="text-[6.5px] font-bold fill-gris">${val}</text>
+                                      </g>
+                                    );
+                                  })}
+
+                                  {/* Line path */}
+                                  {(() => {
+                                    const maxVal = Math.max(...revenueData.map(d => d.value), 100);
+                                    const points = revenueData.map((d, idx) => {
+                                      const x = 40 + (idx / 5) * 280;
+                                      const y = 15 + 90 - (d.value / maxVal) * 90;
+                                      return { x, y, val: d.value };
+                                    });
+                                    const pathD = points.reduce((acc, p, idx) => acc + `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '');
+                                    return (
+                                      <>
+                                        <path d={pathD} fill="none" stroke="var(--color-salvia, #8b9c86)" strokeWidth="2" />
+                                        {points.map((p, idx) => (
+                                          <g key={idx}>
+                                            <circle cx={p.x} cy={p.y} r="2.5" fill="var(--color-terracota, #c08575)" stroke="white" strokeWidth="0.5" />
+                                            <text x={p.x} y={p.y - 5} textAnchor="middle" className="text-[5.5px] font-bold fill-gris">${p.val.toFixed(0)}</text>
+                                            <text x={p.x} y={125} textAnchor="middle" className="text-[5.5px] font-semibold fill-gris/50">{revenueData[idx].label}</text>
+                                          </g>
+                                        ))}
+                                      </>
+                                    );
+                                  })()}
+                                </svg>
+                              ) : (
+                                <p className="text-center text-xs text-gris/40 py-10 italic">No se registran pagos de membresía en los últimos 6 meses.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Popular Classes Bar Chart */}
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-gris opacity-70">Clases Más Reservadas (Top 5)</h4>
+                          <div className="p-4 bg-arena/20 rounded-3xl border border-arena/20 shadow-inner">
+                            {classPopularity.length > 0 ? (
+                              <svg viewBox="0 0 350 140" className="w-full h-auto">
+                                {classPopularity.map((d, idx) => {
+                                  const maxVal = Math.max(...classPopularity.map(c => c.value), 1);
+                                  const barWidth = (d.value / maxVal) * 200;
+                                  const y = 10 + idx * 25;
+                                  return (
+                                    <g key={idx}>
+                                      {/* Class Name */}
+                                      <text x={5} y={y + 12} className="text-[6.5px] font-bold fill-gris" textAnchor="start">
+                                        {d.label.length > 18 ? d.label.substring(0, 18) + '..' : d.label}
+                                      </text>
+                                      {/* Bar */}
+                                      <rect
+                                        x={100}
+                                        y={y + 4}
+                                        width={barWidth || 5}
+                                        height={10}
+                                        rx={5}
+                                        fill="var(--color-salvia, #8b9c86)"
+                                        className="fill-salvia/75"
+                                      />
+                                      {/* Count Text */}
+                                      <text x={105 + barWidth} y={y + 12} className="text-[6.5px] font-bold fill-gris">
+                                        {d.value} reserv.
+                                      </text>
+                                    </g>
+                                  );
+                                })}
+                              </svg>
+                            ) : (
+                              <p className="text-center text-xs text-gris/40 py-10 italic">Aún no hay reservas registradas en las clases.</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Extra Metrics List */}
+                      <div className="grid gap-6 md:grid-cols-2 pt-4 border-t border-arena/20">
+                        {/* Popular hour slots */}
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-gris opacity-70">Horas Pico de Afluencia</h4>
+                          <div className="bg-arena/10 rounded-2xl p-4 border border-arena/10 space-y-2">
+                            {popularHours.length > 0 ? (
+                              popularHours.map((h, idx) => (
+                                <div key={idx} className="flex justify-between items-center text-xs border-b border-arena/10 pb-1.5 last:border-0 last:pb-0">
+                                  <span className="font-semibold text-gris">Slot Horario: {h.label} hs</span>
+                                  <span className="text-[10px] font-bold text-salvia bg-salvia/10 px-2 py-0.5 rounded-full">{h.value} reservas registradas</span>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-center text-xs text-gris/40 py-4 italic">No hay clases programadas con reservas.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Summary Cards */}
+                        <div className="bg-terracota/5 rounded-2xl p-6 border border-terracota/10 flex flex-col justify-center space-y-3">
+                          <h4 className="font-serif text-lg text-terracota font-bold">Resumen de Operación</h4>
+                          <p className="text-xs text-gris/75 leading-relaxed">
+                            Tu tasa de ocupación actual de clases es del <strong>{bookingRate}%</strong>.
+                            El servicio ha generado un volumen total de <strong>${allPayments.reduce((sum, p) => sum + (p.amount || 0), 0).toFixed(2)} USD</strong> en transacciones totales registradas históricamente.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </>
             )}

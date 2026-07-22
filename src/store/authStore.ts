@@ -18,6 +18,7 @@ export interface UserData {
   subscriptionType?: string;
   lastPaymentDate?: string;
   lastPaymentAmount?: number;
+  createdAt?: string;
 }
 
 interface AuthState {
