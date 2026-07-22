@@ -36,10 +36,19 @@ const DEFAULT_SETTINGS = {
 export function Home() {
   const { tenantInfo, tenantSettings, loadingTenant } = useTenantStore();
   const [featuredClasses, setFeaturedClasses] = useState<YogaClass[]>([]);
+  const [instructors, setInstructors] = useState<any[]>([]);
+  const [instructorsLoading, setInstructorsLoading] = useState(false);
+  const [wellnessTeasers, setWellnessTeasers] = useState<any[]>([]);
+  const [wellnessLoading, setWellnessLoading] = useState(false);
+
+  const plan = tenantInfo?.subscriptionPlan || 'basic';
+
   const [showSplash, setShowSplash] = useState(() => {
     // Check if splash was shown in the current page load session
     return !(window as any).__uioyoga_splash_shown;
   });
+
+  const displaySplash = showSplash && plan !== 'basic';
 
   const handleDismissSplash = () => {
     (window as any).__uioyoga_splash_shown = true;
@@ -79,9 +88,48 @@ export function Home() {
       } catch (err) {
         console.error("Error loading home page classes:", err);
       }
+
+      // Load instructors if Premium or Enterprise
+      if (plan === 'premium' || plan === 'enterprise') {
+        setInstructorsLoading(true);
+        try {
+          const instQuery = query(
+            collection(db, 'users'),
+            where('tenantId', '==', getTenantId()),
+            where('role', '==', 'instructor')
+          );
+          const instSnap = await getDocs(instQuery);
+          setInstructors(instSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } catch (err) {
+          console.error("Error loading instructors for home:", err);
+        } finally {
+          setInstructorsLoading(false);
+        }
+      }
+
+      // Load wellness teasers if Enterprise
+      if (plan === 'enterprise') {
+        setWellnessLoading(true);
+        try {
+          const wellQuery = query(
+            collection(db, 'wellness_library'),
+            where('tenantId', '==', getTenantId()),
+            limit(2)
+          );
+          const wellSnap = await getDocs(wellQuery);
+          setWellnessTeasers(wellSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } catch (err) {
+          console.error("Error loading wellness teasers for home:", err);
+        } finally {
+          setWellnessLoading(false);
+        }
+      }
     }
-    loadData();
-  }, []);
+    
+    if (tenantInfo) {
+      loadData();
+    }
+  }, [tenantInfo, plan]);
 
   if (loadingTenant) {
     return (
@@ -91,7 +139,7 @@ export function Home() {
     );
   }
 
-  if (showSplash) {
+  if (displaySplash) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black overflow-hidden">
         {/* Background image */}
@@ -156,7 +204,7 @@ export function Home() {
   }
 
   return (
-    <div className="flex flex-col">
+    <div className={`flex flex-col ${plan === 'enterprise' ? 'bg-marfil relative before:content-[""] before:absolute before:inset-0 before:pointer-events-none before:opacity-[0.04] before:bg-[url("https://www.transparenttextures.com/patterns/canvas-paper.png")]' : ''}`}>
       {/* Sleek Hero Section */}
       <section className="relative flex min-h-[calc(100vh-80px)] flex-col lg:flex-row overflow-hidden bg-marfil">
         <div className="flex w-full lg:w-[450px] shrink-0 flex-col justify-center p-8 lg:p-12 z-10">
@@ -201,42 +249,46 @@ export function Home() {
             />
             <div className="absolute inset-0 bg-gradient-to-br from-black/20 to-transparent"></div>
             
-            {/* 3D Experience Teaser inside the image container */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Link to="/experience" className="group relative h-64 w-64 hover:scale-105 transition-transform duration-500 flex items-center justify-center">
-                 {settings.teaserImage ? (
-                   <div className="relative h-full w-full rounded-full overflow-hidden border-[6px] border-salvia/50 shadow-xl">
-                     <img src={settings.teaserImage} alt="UIO Room Teaser" className="w-full h-full object-cover opacity-85" />
-                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                       <span className="font-serif italic text-white text-lg drop-shadow-md">UIO Room</span>
-                     </div>
+            {plan === 'enterprise' && (
+              <>
+                {/* 3D Experience Teaser inside the image container */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Link to="/experience" className="group relative h-64 w-64 hover:scale-105 transition-transform duration-500 flex items-center justify-center">
+                     {settings.teaserImage ? (
+                       <div className="relative h-full w-full rounded-full overflow-hidden border-[6px] border-salvia/50 shadow-xl">
+                         <img src={settings.teaserImage} alt="UIO Room Teaser" className="w-full h-full object-cover opacity-85" />
+                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                           <span className="font-serif italic text-white text-lg drop-shadow-md">UIO Room</span>
+                         </div>
+                       </div>
+                     ) : (
+                       <>
+                         <div className="absolute inset-0 rounded-full border-2 border-salvia/40 animate-pulse group-hover:border-salvia"></div>
+                         <div className="absolute inset-8 rounded-full border-2 border-terracota/60 group-hover:border-terracota"></div>
+                         <div className="absolute inset-0 flex items-center justify-center bg-marfil/10 rounded-full backdrop-blur-[2px]">
+                           <span className="font-serif italic text-white text-lg drop-shadow-md">UIO Room</span>
+                         </div>
+                       </>
+                     )}
+                  </Link>
+                </div>
+                <div className="absolute left-8 top-8">
+                  <span className="rounded-full bg-white/80 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gris backdrop-blur-md shadow-sm">
+                    Modo Inmersivo 3D • Activo
+                  </span>
+                </div>
+                <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
+                   <div className="space-y-1">
+                     <p className="font-serif text-xl text-white drop-shadow-md">Sala Principal</p>
+                     <p className="text-xs text-white/90 drop-shadow-md">Explora nuestro santuario de luz y paz.</p>
                    </div>
-                 ) : (
-                   <>
-                     <div className="absolute inset-0 rounded-full border-2 border-salvia/40 animate-pulse group-hover:border-salvia"></div>
-                     <div className="absolute inset-8 rounded-full border-2 border-terracota/60 group-hover:border-terracota"></div>
-                     <div className="absolute inset-0 flex items-center justify-center bg-marfil/10 rounded-full backdrop-blur-[2px]">
-                       <span className="font-serif italic text-white text-lg drop-shadow-md">UIO Room</span>
-                     </div>
-                   </>
-                 )}
-              </Link>
-            </div>
-            <div className="absolute left-8 top-8">
-              <span className="rounded-full bg-white/80 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gris backdrop-blur-md shadow-sm">
-                Modo Inmersivo 3D • Activo
-              </span>
-            </div>
-            <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
-               <div className="space-y-1">
-                 <p className="font-serif text-xl text-white drop-shadow-md">Sala Principal</p>
-                 <p className="text-xs text-white/90 drop-shadow-md">Explora nuestro santuario de luz y paz.</p>
-               </div>
-               <div className="flex gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer">←</div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer">→</div>
-               </div>
-            </div>
+                   <div className="flex gap-2">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer">←</div>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/20 text-white backdrop-blur-md hover:bg-white/40 cursor-pointer">→</div>
+                   </div>
+                </div>
+              </>
+            )}
           </motion.div>
         </div>
       </section>
@@ -340,6 +392,126 @@ export function Home() {
                   Explorar Calendario Completo
                 </Button>
               </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Instructors Section (Premium & Enterprise) */}
+      {(plan === 'premium' || plan === 'enterprise') && instructors.length > 0 && (
+        <section className="bg-arena/20 py-24 border-t border-b border-arena/30">
+          <div className="container mx-auto px-4 md:px-12">
+            <div className="mb-16 text-center">
+              <span className="mb-4 block text-[10px] font-bold tracking-[0.3em] uppercase text-terracota">Nuestro Equipo</span>
+              <h2 className="font-serif text-4xl font-semibold text-gris md:text-5xl">Conoce a tus Instructores</h2>
+              <div className="mx-auto mt-4 h-1 w-20 bg-salvia"></div>
+            </div>
+
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 justify-center">
+              {instructors.map((inst, i) => (
+                <motion.div
+                  key={inst.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="rounded-[32px] border-[8px] border-white bg-white p-8 text-center shadow-md hover:shadow-xl transition-shadow flex flex-col items-center"
+                >
+                  <div className="w-24 h-24 rounded-full bg-arena flex items-center justify-center mb-6 text-salvia font-serif text-3xl font-bold uppercase shadow-inner border border-arena-image">
+                    {inst.name ? inst.name[0] : 'I'}
+                  </div>
+                  <h3 className="font-serif text-xl text-gris font-semibold mb-1">{inst.name || 'Instructor'}</h3>
+                  <p className="text-xs text-terracota font-bold uppercase tracking-wider mb-4">Guía de Yoga</p>
+                  <p className="text-xs text-gris/60 italic">"{inst.email || 'Conéctate con tu respiración y eleva tu espíritu.'}"</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Testimonials Section (Premium & Enterprise) */}
+      {(plan === 'premium' || plan === 'enterprise') && (
+        <section className="bg-marfil py-24">
+          <div className="container mx-auto px-4 md:px-12">
+            <div className="mb-16 text-center">
+              <span className="mb-4 block text-[10px] font-bold tracking-[0.3em] uppercase text-terracota">Experiencias</span>
+              <h2 className="font-serif text-4xl font-semibold text-gris md:text-5xl">La voz de nuestra Comunidad</h2>
+              <div className="mx-auto mt-4 h-1 w-20 bg-salvia"></div>
+            </div>
+
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {[
+                { name: "Sofía M.", role: "Miembro hace 1 año", text: "Un espacio único de paz y luz. Las clases me han ayudado a reconectar con mi centro y encontrar flexibilidad física y mental." },
+                { name: "Carlos R.", role: "Miembro hace 6 meses", text: "Excelente nivel de instructores y una plataforma online impecable. Calificar mi progreso me ayuda a ver mis avances de forma lúdica." },
+                { name: "Elena G.", role: "Miembro hace 2 años", text: "El ambiente zen se respira en cada rincón, incluso en la app. Las meditaciones guiadas de la biblioteca de bienestar son una maravilla." }
+              ].map((t, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="rounded-[32px] border-[8px] border-white bg-arena/30 p-8 shadow-sm flex flex-col justify-between"
+                >
+                  <p className="text-sm text-gris/85 italic leading-relaxed">"{t.text}"</p>
+                  <div className="mt-6 border-t border-arena/40 pt-4 flex justify-between items-center">
+                    <div>
+                      <h4 className="font-serif text-sm font-bold text-gris">{t.name}</h4>
+                      <p className="text-[10px] text-terracota font-bold uppercase tracking-wider">{t.role}</p>
+                    </div>
+                    <span className="text-salvia text-lg">★★★★★</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Wellness Library Teaser (Enterprise only) */}
+      {plan === 'enterprise' && wellnessTeasers.length > 0 && (
+        <section className="bg-salvia/10 py-24 border-t border-arena/30">
+          <div className="container mx-auto px-4 md:px-12">
+            <div className="grid lg:grid-cols-3 gap-12 items-center">
+              <div className="lg:col-span-1 space-y-6">
+                <span className="block text-[10px] font-bold tracking-[0.3em] uppercase text-terracota">Biblioteca Premium</span>
+                <h2 className="font-serif text-4xl font-semibold text-gris leading-tight">Tu Espacio de Bienestar Virtual</h2>
+                <p className="text-sm text-gris/75 leading-relaxed">
+                  Los miembros del plan **Enterprise** acceden a grabaciones exclusivas, meditaciones guiadas y sesiones terapéuticas desde su propio panel de alumnos.
+                </p>
+                <div className="pt-4">
+                  <Link to="/experience">
+                    <Button className="rounded-full bg-salvia px-8 py-5 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md">
+                      Explorar UIO Room
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="lg:col-span-2 grid gap-6 sm:grid-cols-2">
+                {wellnessTeasers.map((w, idx) => (
+                  <motion.div
+                    key={w.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="group rounded-[24px] bg-white p-6 shadow-md border border-arena/20 relative overflow-hidden"
+                  >
+                    <span className="absolute top-4 right-4 bg-terracota/10 px-2 py-0.5 rounded-full text-[8px] font-bold text-terracota uppercase tracking-widest">
+                      Exclusivo
+                    </span>
+                    <div className="w-10 h-10 bg-arena/50 rounded-full flex items-center justify-center text-salvia mb-4 shadow-inner">
+                      ▶
+                    </div>
+                    <h4 className="font-serif text-lg text-gris font-bold mb-2 group-hover:text-salvia transition-colors">{w.title}</h4>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gris/50">
+                      {w.duration} • {w.category}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </div>
         </section>

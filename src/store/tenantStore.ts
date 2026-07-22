@@ -24,6 +24,7 @@ export interface StudioSettings {
   splashTitle?: string;
   splashSubtitle?: string;
   splashImage?: string;
+  splashLogo?: string;
 }
 
 interface TenantState {
