@@ -20,6 +20,7 @@ import {
   Copy, 
   Check, 
   ShieldAlert, 
+  Shield,
   CreditCard, 
   FileText, 
   CheckCircle2, 
@@ -1169,7 +1170,7 @@ export function Dashboard() {
             className="w-full max-w-xl rounded-[32px] border-[8px] border-white bg-arena shadow-2xl p-8 relative overflow-hidden"
           >
             <div className="flex items-center gap-3 mb-4">
-              <span className="material-symbols-outlined text-terracota text-3xl">shield</span>
+              <Shield className="text-terracota h-7 w-7 shrink-0" />
               <h3 className="font-serif text-2xl text-gris font-bold">Consentimiento y Uso de Datos</h3>
             </div>
             
@@ -1205,20 +1206,20 @@ export function Dashboard() {
                 type="checkbox" 
                 checked={checkboxChecked}
                 onChange={(e) => setCheckboxChecked(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-arena text-salvia focus:ring-salvia cursor-pointer"
+                className="mt-1 h-4 w-4 rounded border-arena text-salvia focus:ring-salvia cursor-pointer shrink-0"
               />
               <label htmlFor="policyCheckbox" className="text-xs text-gris/80 leading-relaxed cursor-pointer select-none">
                 He leído y acepto expresamente los términos de uso de datos, el registro de valoraciones físicas y las políticas de privacidad del estudio.
               </label>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={handleAcceptPolicy}
                 disabled={!checkboxChecked || isAcceptingPolicy}
-                className="flex-1 rounded-full bg-salvia py-3.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 disabled:opacity-55 disabled:cursor-not-allowed shadow-md cursor-pointer transition-opacity"
+                className="w-full sm:flex-1 rounded-full bg-salvia py-3.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 disabled:opacity-55 disabled:cursor-not-allowed shadow-md cursor-pointer transition-opacity text-center"
               >
-                {isAcceptingPolicy ? 'Registrando...' : 'Aceptar y Registrar Ingreso'}
+                {isAcceptingPolicy ? 'Registrando...' : 'Aceptar e Ingresar'}
               </Button>
               <Button
                 variant="outline"
@@ -1226,7 +1227,7 @@ export function Dashboard() {
                   await signOut(auth);
                   navigate('/');
                 }}
-                className="rounded-full border border-arena px-6 py-3.5 text-xs font-bold uppercase tracking-widest text-gris hover:bg-arena cursor-pointer"
+                className="w-full sm:w-28 rounded-full border border-arena px-6 py-3.5 text-xs font-bold uppercase tracking-widest text-gris hover:bg-arena cursor-pointer text-center"
               >
                 Salir
               </Button>
