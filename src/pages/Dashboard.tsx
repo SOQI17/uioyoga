@@ -1343,7 +1343,31 @@ export function Dashboard() {
                         <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
                       </div>
                     ) : progressLogs.length > 0 ? (
-                      <RadarChart scores={progressLogs[progressLogs.length - 1].scores} />
+                      <>
+                        <RadarChart scores={progressLogs[progressLogs.length - 1].scores} />
+                        <div className="mt-4 bg-white/70 p-4 rounded-[24px] border border-white shadow-inner grid grid-cols-2 gap-2 text-[9px] text-gris font-bold uppercase tracking-wider">
+                          <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
+                            <span>Flexibilidad</span>
+                            <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.flexibility} / 10</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
+                            <span>Fuerza Física</span>
+                            <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.strength} / 10</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
+                            <span>Equilibrio</span>
+                            <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.balance} / 10</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
+                            <span>Resistencia</span>
+                            <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.endurance} / 10</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10 col-span-2">
+                            <span>Enfoque / Paz Mental</span>
+                            <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.mindfulness} / 10</span>
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <div className="text-center py-10 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">
                         Sin valoraciones corporales aún.
@@ -1476,7 +1500,31 @@ export function Dashboard() {
                       <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
                     </div>
                   ) : progressLogs.length > 0 ? (
-                    <RadarChart scores={progressLogs[progressLogs.length - 1].scores} />
+                    <>
+                      <RadarChart scores={progressLogs[progressLogs.length - 1].scores} />
+                      <div className="mt-4 bg-white/70 p-4 rounded-[24px] border border-white shadow-inner grid grid-cols-2 gap-2 text-[9px] text-gris font-bold uppercase tracking-wider">
+                        <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
+                          <span>Flexibilidad</span>
+                          <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.flexibility} / 10</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
+                          <span>Fuerza Física</span>
+                          <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.strength} / 10</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
+                          <span>Equilibrio</span>
+                          <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.balance} / 10</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
+                          <span>Resistencia</span>
+                          <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.endurance} / 10</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10 col-span-2">
+                          <span>Enfoque / Paz Mental</span>
+                          <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.mindfulness} / 10</span>
+                        </div>
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center py-10 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">
                       Aún no se han registrado valoraciones corporales de tus instructores. ¡Pronto verás tu progreso aquí!
