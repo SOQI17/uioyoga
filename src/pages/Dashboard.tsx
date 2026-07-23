@@ -254,7 +254,7 @@ function ProgressLineChart({ logs }: { logs: any[] }) {
 }
 
 export function Dashboard() {
-  const { user, userData, loading } = useAuthStore();
+  const { user, userData, loading, setUserData } = useAuthStore();
   const navigate = useNavigate();
   
   // State for Classes
@@ -336,6 +336,10 @@ export function Dashboard() {
   const [savingWellness, setSavingWellness] = useState(false);
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+
+  // Privacy Policy States
+  const [checkboxChecked, setCheckboxChecked] = useState(false);
+  const [isAcceptingPolicy, setIsAcceptingPolicy] = useState(false);
 
   const { tenantInfo } = useTenantStore();
 
@@ -904,6 +908,30 @@ export function Dashboard() {
       alert("No se pudo eliminar el contenido.");
     }
   };
+  const handleAcceptPolicy = async () => {
+    if (!user || !userData) return;
+    setIsAcceptingPolicy(true);
+    try {
+      const policyAcceptedAt = new Date().toISOString();
+      await setDoc(doc(db, 'users', user.uid), {
+        acceptedPrivacyPolicy: true,
+        policyAcceptedAt
+      }, { merge: true });
+      
+      setUserData({
+        ...userData,
+        acceptedPrivacyPolicy: true,
+        policyAcceptedAt
+      });
+      alert("¡Gracias! Tu consentimiento ha sido registrado correctamente.");
+    } catch (err) {
+      console.error("Error accepting privacy policy:", err);
+      alert("No se pudo registrar la aceptación de la política. Por favor intenta de nuevo.");
+    } finally {
+      setIsAcceptingPolicy(false);
+    }
+  };
+
   const openDetailsModal = (student: UserData) => {
     setSelectedStudentForDetails(student);
     setExpedienteTab('info');
@@ -1128,6 +1156,82 @@ export function Dashboard() {
               setClassToEdit(null);
             }}
           />
+        </div>
+      )}
+
+      {/* MODAL DE POLÍTICA DE PRIVACIDAD Y USO DE DATOS (CONSENTIMIENTO) */}
+      {userData && (userData.role === 'student' || userData.role === 'instructor') && !userData.acceptedPrivacyPolicy && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+          <motion.div 
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="w-full max-w-xl rounded-[32px] border-[8px] border-white bg-arena shadow-2xl p-8 relative overflow-hidden"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <span className="material-symbols-outlined text-terracota text-3xl">shield</span>
+              <h3 className="font-serif text-2xl text-gris font-bold">Consentimiento y Uso de Datos</h3>
+            </div>
+            
+            <p className="text-xs text-gris/70 mb-4 leading-relaxed">
+              En <strong className="text-salvia">{tenantInfo?.name || 'nuestro estudio'}</strong> nos tomamos muy en serio la seguridad y el tratamiento de tu información personal. Por favor lee y acepta las condiciones para ingresar a la plataforma:
+            </p>
+
+            <div className="max-h-60 overflow-y-auto bg-white/50 rounded-2xl p-4 border border-arena/30 text-xs text-gris/85 space-y-3 mb-6 scrollbar-thin">
+              <p className="font-bold text-salvia">1. Seguimiento Físico y Evolución</p>
+              <p>
+                Al utilizar esta aplicación, autorizas a que los instructores del estudio registren valoraciones periódicas sobre tu desempeño y condición física (niveles de flexibilidad, fuerza, equilibrio, resistencia y enfoque). Estos datos son estrictamente confidenciales y se utilizarán para adaptar las clases a tus necesidades y prevenir lesiones.
+              </p>
+              
+              <p className="font-bold text-salvia">2. Privacidad y Confidencialidad</p>
+              <p>
+                Toda la información registrada dentro de esta cuenta (incluyendo tus datos de contacto, historial de pagos, reservas y valoraciones físicas) pertenece exclusivamente al entorno privado de este estudio y no será compartida con terceros externos bajo ninguna circunstancia.
+              </p>
+              
+              <p className="font-bold text-salvia">3. Derechos sobre tus Datos</p>
+              <p>
+                Como usuario, tienes derecho a solicitar en cualquier momento la consulta, modificación o baja de tu expediente de datos personales comunicándote directamente con la administración del estudio.
+              </p>
+
+              <p className="font-bold text-salvia">4. Modificaciones del Servicio</p>
+              <p>
+                El estudio se reserva el derecho a suspender o dar de baja cuentas que infrinjan las normas de convivencia del centro o que presenten adeudos vencidos en sus membresías.
+              </p>
+            </div>
+
+            <div className="flex items-start gap-3 mb-6">
+              <input 
+                id="policyCheckbox"
+                type="checkbox" 
+                checked={checkboxChecked}
+                onChange={(e) => setCheckboxChecked(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-arena text-salvia focus:ring-salvia cursor-pointer"
+              />
+              <label htmlFor="policyCheckbox" className="text-xs text-gris/80 leading-relaxed cursor-pointer select-none">
+                He leído y acepto expresamente los términos de uso de datos, el registro de valoraciones físicas y las políticas de privacidad del estudio.
+              </label>
+            </div>
+
+            <div className="flex gap-4">
+              <Button
+                onClick={handleAcceptPolicy}
+                disabled={!checkboxChecked || isAcceptingPolicy}
+                className="flex-1 rounded-full bg-salvia py-3.5 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 disabled:opacity-55 disabled:cursor-not-allowed shadow-md cursor-pointer transition-opacity"
+              >
+                {isAcceptingPolicy ? 'Registrando...' : 'Aceptar y Registrar Ingreso'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await signOut(auth);
+                  navigate('/');
+                }}
+                className="rounded-full border border-arena px-6 py-3.5 text-xs font-bold uppercase tracking-widest text-gris hover:bg-arena cursor-pointer"
+              >
+                Salir
+              </Button>
+            </div>
+          </motion.div>
         </div>
       )}
 

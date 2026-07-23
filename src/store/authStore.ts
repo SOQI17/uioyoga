@@ -19,6 +19,8 @@ export interface UserData {
   lastPaymentDate?: string;
   lastPaymentAmount?: number;
   createdAt?: string;
+  acceptedPrivacyPolicy?: boolean;
+  policyAcceptedAt?: string;
 }
 
 interface AuthState {
