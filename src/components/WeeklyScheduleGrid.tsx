@@ -1,0 +1,437 @@
+import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
+  Plus, CheckCircle2, User, Clock, Info, ShieldAlert 
+} from 'lucide-react';
+import { format, addDays, startOfWeek, isSameDay, isToday } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { YogaClass } from './ClassDetailModal';
+
+interface WeeklyScheduleGridProps {
+  classes: YogaClass[];
+  bookings: Record<string, any[]>;
+  userBookedIds: Set<string>;
+  userData: any;
+  onSelectClass: (c: YogaClass) => void;
+  onCreateClassAt: (dateTimeIso: string) => void;
+  timeFilter: 'all' | 'morning' | 'afternoon';
+}
+
+// Map class names to distinct colors & abbreviations (matching Image 2)
+export function getClassStyle(title: string) {
+  const lower = title.toLowerCase().trim();
+  
+  if (lower.includes('warrior') || lower.startsWith('w')) {
+    return {
+      letter: 'W',
+      bg: 'bg-amber-500/25 hover:bg-amber-500/40',
+      border: 'border-amber-500/70',
+      text: 'text-amber-300',
+      badgeBg: 'bg-amber-500 text-black',
+      glow: 'shadow-amber-500/20',
+      legendColor: '#f59e0b'
+    };
+  }
+  if (lower.includes('dancer') || lower.startsWith('d')) {
+    return {
+      letter: 'D',
+      bg: 'bg-yellow-400/25 hover:bg-yellow-400/40',
+      border: 'border-yellow-400/70',
+      text: 'text-yellow-300',
+      badgeBg: 'bg-yellow-400 text-black',
+      glow: 'shadow-yellow-400/20',
+      legendColor: '#eab308'
+    };
+  }
+  if (lower.includes('animal') || lower.startsWith('a')) {
+    return {
+      letter: 'A',
+      bg: 'bg-emerald-500/25 hover:bg-emerald-500/40',
+      border: 'border-emerald-500/70',
+      text: 'text-emerald-300',
+      badgeBg: 'bg-emerald-500 text-black',
+      glow: 'shadow-emerald-500/20',
+      legendColor: '#10b981'
+    };
+  }
+  if (lower.includes('espejo') || lower.startsWith('e')) {
+    return {
+      letter: 'E',
+      bg: 'bg-indigo-500/25 hover:bg-indigo-500/40',
+      border: 'border-indigo-500/70',
+      text: 'text-indigo-300',
+      badgeBg: 'bg-indigo-500 text-white',
+      glow: 'shadow-indigo-500/20',
+      legendColor: '#6366f1'
+    };
+  }
+  if (lower.includes('mente') || lower.includes('buda') || lower.startsWith('b')) {
+    return {
+      letter: 'B',
+      bg: 'bg-cyan-500/25 hover:bg-cyan-500/40',
+      border: 'border-cyan-500/70',
+      text: 'text-cyan-300',
+      badgeBg: 'bg-cyan-500 text-black',
+      glow: 'shadow-cyan-500/20',
+      legendColor: '#06b6d4'
+    };
+  }
+  
+  // Default dynamic styles
+  const letter = title.charAt(0).toUpperCase() || 'Y';
+  return {
+    letter,
+    bg: 'bg-salvia/25 hover:bg-salvia/40',
+    border: 'border-salvia/70',
+    text: 'text-salvia',
+    badgeBg: 'bg-salvia text-black',
+    glow: 'shadow-salvia/20',
+    legendColor: '#9ca688'
+  };
+}
+
+export function WeeklyScheduleGrid({
+  classes,
+  bookings,
+  userBookedIds,
+  userData,
+  onSelectClass,
+  onCreateClassAt,
+  timeFilter,
+}: WeeklyScheduleGridProps) {
+  // Current Monday of the week being viewed
+  const [currentMonday, setCurrentMonday] = useState<Date>(() => {
+    return startOfWeek(new Date(), { weekStartsOn: 1 });
+  });
+
+  const isAdminOrInstructor = userData?.role === 'admin' || userData?.role === 'instructor' || userData?.role === 'superadmin';
+
+  // Calculate the 7 days (Monday to Sunday) for the selected week
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => addDays(currentMonday, i));
+  }, [currentMonday]);
+
+  // Standard time slots (matching reference image)
+  const defaultTimeSlots = [
+    '07:00', '08:00', '08:30', '09:00', '10:00',
+    '17:00', '17:30', '18:30', '19:00'
+  ];
+
+  // Extract all time slots present in actual classes to make sure none are omitted
+  const timeSlots = useMemo(() => {
+    const slots = new Set<string>(defaultTimeSlots);
+    
+    classes.forEach(c => {
+      if (!c.date) return;
+      const d = new Date(c.date);
+      const hour = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      slots.add(`${hour}:${min}`);
+    });
+
+    const sorted = Array.from(slots).sort((a, b) => {
+      const [hA, mA] = a.split(':').map(Number);
+      const [hB, mB] = b.split(':').map(Number);
+      return (hA * 60 + mA) - (hB * 60 + mB);
+    });
+
+    // Apply morning / afternoon filter
+    return sorted.filter(slot => {
+      const hour = parseInt(slot.split(':')[0], 10);
+      if (timeFilter === 'morning') return hour < 12;
+      if (timeFilter === 'afternoon') return hour >= 12;
+      return true;
+    });
+  }, [classes, timeFilter]);
+
+  // Extract unique class types for the Legend (matching reference image)
+  const legendItems = useMemo(() => {
+    const map = new Map<string, { letter: string; title: string; style: ReturnType<typeof getClassStyle> }>();
+    
+    // Default reference types
+    const defaults = [
+      'Warrior Vinyasa',
+      'Dancer Vinyasa',
+      'Animal Vinyasa',
+      'Espejo del Sabio',
+      'Mente de Buda'
+    ];
+
+    defaults.forEach(title => {
+      const style = getClassStyle(title);
+      map.set(title.toLowerCase(), { letter: style.letter, title, style });
+    });
+
+    classes.forEach(c => {
+      if (!c.title) return;
+      const key = c.title.toLowerCase();
+      if (!map.has(key)) {
+        const style = getClassStyle(c.title);
+        map.set(key, { letter: style.letter, title: c.title, style });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [classes]);
+
+  // Helper to find classes for a specific day and time slot
+  const getClassesForSlot = (day: Date, slotTimeStr: string) => {
+    return classes.filter(c => {
+      if (!c.date) return false;
+      const d = new Date(c.date);
+      
+      const isSameDate = isSameDay(d, day);
+      if (!isSameDate) return false;
+
+      const hour = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      const classSlot = `${hour}:${min}`;
+
+      return classSlot === slotTimeStr;
+    });
+  };
+
+  // Week navigation handlers
+  const handlePrevWeek = () => setCurrentMonday(prev => addDays(prev, -7));
+  const handleNextWeek = () => setCurrentMonday(prev => addDays(prev, 7));
+  const handleToday = () => setCurrentMonday(startOfWeek(new Date(), { weekStartsOn: 1 }));
+
+  const sunday = addDays(currentMonday, 6);
+  const dateRangeText = `del ${format(currentMonday, "dd", { locale: es })} al ${format(sunday, "dd 'de' MMMM", { locale: es })}`;
+
+  return (
+    <div className="w-full space-y-6">
+      {/* HEADER & WEEK NAVIGATION */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#141416] p-6 rounded-3xl border border-[#4a2e1b]/40 shadow-xl">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-salvia animate-pulse"></span>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-salvia">Calendario Interactivo</span>
+          </div>
+          <h2 className="font-serif text-3xl font-medium text-white capitalize mt-1">
+            Horarios de clase {dateRangeText}
+          </h2>
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <button
+            type="button"
+            onClick={handlePrevWeek}
+            className="flex items-center justify-center p-2.5 rounded-full bg-white/5 border border-white/10 text-white hover:bg-salvia hover:text-black transition-all cursor-pointer"
+            title="Semana Anterior"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleToday}
+            className="px-5 py-2.5 rounded-full bg-white/10 border border-white/15 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/20 transition-all cursor-pointer"
+          >
+            Esta Semana
+          </button>
+
+          <button
+            type="button"
+            onClick={handleNextWeek}
+            className="flex items-center justify-center p-2.5 rounded-full bg-white/5 border border-white/10 text-white hover:bg-salvia hover:text-black transition-all cursor-pointer"
+            title="Semana Siguiente"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* LEGEND BAR (Matching Image 2 Reference) */}
+      <div className="bg-[#121214] p-5 rounded-3xl border border-white/10 shadow-lg">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-white/50 block mb-3">
+          Leyenda de Clases:
+        </span>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          {legendItems.map((item) => (
+            <div key={item.title} className="flex items-center gap-2">
+              <span className={`flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black font-serif border ${item.style.border} ${item.style.badgeBg} shadow-sm`}>
+                {item.letter}
+              </span>
+              <span className="text-xs font-medium text-white/90">
+                :{item.title}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ADMIN HELPER BANNER */}
+      {isAdminOrInstructor && (
+        <div className="bg-salvia/10 border border-salvia/30 rounded-2xl p-4 flex items-center gap-3 text-xs text-salvia">
+          <Info className="w-4 h-4 shrink-0" />
+          <span>
+            <strong>Modo Edición Activado:</strong> Haz clic en cualquier recuadro pintado para editar, duplicar o eliminar una clase. Haz clic en un espacio vacío para crear una nueva clase en ese día y hora.
+          </span>
+        </div>
+      )}
+
+      {/* WEEKLY GRID TABLE */}
+      <div className="overflow-x-auto rounded-3xl border-4 border-[#4a2e1b] bg-[#0c0c0e] shadow-2xl no-scrollbar">
+        <div className="min-w-[768px]">
+          {/* HEADER ROW: TIME / DAYS */}
+          <div className="grid grid-cols-8 border-b-2 border-white/15 bg-[#18181b]">
+            {/* Time Slot Header Column */}
+            <div className="p-4 flex items-center justify-center text-center font-bold text-[10px] uppercase tracking-widest text-white/40 border-r border-white/10">
+              <Clock className="w-3.5 h-3.5 mr-1" /> Hora
+            </div>
+
+            {/* 7 Days Headers */}
+            {weekDays.map((day) => {
+              const isCurrentDay = isToday(day);
+              return (
+                <div
+                  key={day.toISOString()}
+                  className={`p-3 text-center border-r border-white/10 last:border-r-0 flex flex-col justify-center transition-colors ${
+                    isCurrentDay ? 'bg-salvia/20 text-salvia font-black' : 'text-white/80'
+                  }`}
+                >
+                  <span className="text-xs font-bold uppercase tracking-wider block">
+                    {format(day, "EEE", { locale: es })}
+                  </span>
+                  <span className={`text-sm font-serif ${isCurrentDay ? 'text-salvia font-bold' : 'text-white/60'}`}>
+                    {format(day, "d MMM", { locale: es })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* GRID BODY: TIME ROWS */}
+          {timeSlots.length > 0 ? (
+            timeSlots.map((slot) => {
+              const isMorningSlot = parseInt(slot.split(':')[0], 10) < 12;
+
+              return (
+                <div
+                  key={slot}
+                  className="grid grid-cols-8 border-b border-white/10 min-h-[72px]"
+                >
+                  {/* Time Label Cell */}
+                  <div className={`p-3 flex items-center justify-center font-mono text-xs font-bold border-r border-white/10 select-none ${
+                    isMorningSlot ? 'bg-amber-500/10 text-amber-300' : 'bg-indigo-500/10 text-indigo-300'
+                  }`}>
+                    <span className="px-2 py-1 rounded-lg bg-black/40 border border-white/10">
+                      {slot}
+                    </span>
+                  </div>
+
+                  {/* 7 Day Slot Cells */}
+                  {weekDays.map((day) => {
+                    const slotClasses = getClassesForSlot(day, slot);
+                    const isCurrentDay = isToday(day);
+
+                    // Build ISO string for creating class in empty cell
+                    const [h, m] = slot.split(':').map(Number);
+                    const cellDate = new Date(day);
+                    cellDate.setHours(h, m, 0, 0);
+
+                    // Local ISO string for datetime-local
+                    const tzoffset = cellDate.getTimezoneOffset() * 60000;
+                    const localIso = new Date(cellDate.getTime() - tzoffset).toISOString().slice(0, 16);
+
+                    return (
+                      <div
+                        key={day.toISOString()}
+                        className={`p-1.5 border-r border-white/10 last:border-r-0 relative transition-colors ${
+                          isCurrentDay ? 'bg-salvia/5' : 'bg-transparent'
+                        }`}
+                      >
+                        {slotClasses.length > 0 ? (
+                          /* POPULATED CLASS BOX(ES) */
+                          <div className="space-y-1.5 h-full">
+                            {slotClasses.map((c) => {
+                              const style = getClassStyle(c.title);
+                              const isBooked = userBookedIds.has(c.id);
+                              const spotsTaken = bookings[c.id]?.length || 0;
+                              const spotsAvailable = c.capacity - spotsTaken;
+                              const isFull = spotsAvailable <= 0;
+
+                              return (
+                                <motion.div
+                                  key={c.id}
+                                  whileHover={{ scale: 1.03 }}
+                                  whileTap={{ scale: 0.97 }}
+                                  onClick={() => onSelectClass(c)}
+                                  className={`relative h-full min-h-[60px] rounded-2xl p-2.5 border-2 ${style.border} ${style.bg} ${style.glow} shadow-md transition-all cursor-pointer flex flex-col justify-between overflow-hidden group`}
+                                >
+                                  {/* User Booked Pill Indicator */}
+                                  {isBooked && (
+                                    <div className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-salvia text-black">
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center gap-2">
+                                    {/* Class Stylized Letter Badge */}
+                                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-black font-serif border ${style.border} ${style.badgeBg} shadow-sm`}>
+                                      {style.letter}
+                                    </span>
+
+                                    <div className="truncate">
+                                      <h4 className="text-xs font-bold text-white truncate group-hover:text-salvia transition-colors">
+                                        {c.title}
+                                      </h4>
+                                      <p className="text-[10px] text-white/70 italic truncate">
+                                        {c.instructor}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Footer Info inside Cell */}
+                                  <div className="flex items-center justify-between mt-1 text-[9px] font-semibold">
+                                    <span className="text-white/60">
+                                      {c.duration}m
+                                    </span>
+                                    <span className={`px-1.5 py-0.5 rounded-full ${isFull ? 'bg-red-500/20 text-red-400' : 'bg-black/40 text-salvia'}`}>
+                                      {isFull ? 'Lleno' : `${spotsAvailable}/${c.capacity}`}
+                                    </span>
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          /* EMPTY CELL SLOT */
+                          <div
+                            onClick={() => {
+                              if (isAdminOrInstructor) {
+                                onCreateClassAt(localIso);
+                              }
+                            }}
+                            className={`h-full min-h-[58px] rounded-2xl border border-dashed transition-all flex items-center justify-center ${
+                              isAdminOrInstructor
+                                ? 'border-white/10 hover:border-salvia/60 hover:bg-salvia/10 cursor-pointer group'
+                                : 'border-transparent'
+                            }`}
+                          >
+                            {isAdminOrInstructor && (
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold uppercase tracking-wider text-salvia flex items-center gap-1">
+                                <Plus className="w-3.5 h-3.5" /> Agregar
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })
+          ) : (
+            <div className="py-16 text-center text-white/50">
+              No hay horarios disponibles para el filtro de tiempo seleccionado.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

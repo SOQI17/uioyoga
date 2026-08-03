@@ -4,23 +4,12 @@ import { db, getTenantId } from '../lib/firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { AdminClassForm } from '../components/AdminClassForm';
-
-interface YogaClass {
-  id: string;
-  title: string;
-  instructor: string;
-  level: string;
-  capacity: number;
-  date: string; // ISO string
-  duration: number; // minutes
-  featured?: boolean;
-  image?: string;
-}
+import { WeeklyScheduleGrid } from '../components/WeeklyScheduleGrid';
+import { ClassDetailModal, YogaClass } from '../components/ClassDetailModal';
 
 export function Schedule() {
   const [classes, setClasses] = useState<YogaClass[]>([]);
@@ -34,10 +23,15 @@ export function Schedule() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [classToEdit, setClassToEdit] = useState<YogaClass | null>(null);
 
+  // Default view is 'week' (Calendario Semanal Interactivo)
+  const [viewMode, setViewMode] = useState<'week' | 'list'>('week');
   const [timeFilter, setTimeFilter] = useState<'all' | 'morning' | 'afternoon'>('all');
-  const [viewMode, setViewMode] = useState<'list' | 'week'>('list');
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number | null>(null);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+
+  // Detail Modal Popup state
+  const [selectedClassForModal, setSelectedClassForModal] = useState<YogaClass | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const DAYS_OF_WEEK = [
     { name: 'Lunes', value: 1 },
@@ -48,6 +42,8 @@ export function Schedule() {
     { name: 'Sábado', value: 6 },
     { name: 'Domingo', value: 0 }
   ];
+
+  const isAdminOrInstructor = userData?.role === 'admin' || userData?.role === 'instructor' || userData?.role === 'superadmin';
 
   const getGoogleCalendarUrl = (c: YogaClass) => {
     const startDate = new Date(c.date);
@@ -215,6 +211,7 @@ export function Schedule() {
       }
 
       alert("¡Reserva confirmada con éxito!");
+      setIsDetailModalOpen(false);
       await fetchClasses();
     } catch (err: any) {
       console.error("Error creating booking:", err);
@@ -252,6 +249,7 @@ export function Schedule() {
         }
 
         alert("Reserva cancelada correctamente.");
+        setIsDetailModalOpen(false);
         await fetchClasses();
       }
     } catch (err) {
@@ -263,14 +261,26 @@ export function Schedule() {
   };
 
   const handleDeleteClass = async (id: string) => {
-    if (!window.confirm("¿Estás seguro de que deseas eliminar esta clase?")) return;
     try {
       await deleteDoc(doc(db, 'classes', id));
+      setIsDetailModalOpen(false);
       fetchClasses();
     } catch (err) {
       console.error("Error deleting class:", err);
       alert("No se pudo eliminar la clase.");
     }
+  };
+
+  // Open Popup Modal for a selected class
+  const handleOpenClassModal = (c: YogaClass) => {
+    setSelectedClassForModal(c);
+    setIsDetailModalOpen(true);
+  };
+
+  // Open Admin Class Form for creating a class at specific date & time slot
+  const handleCreateClassAtSlot = (dateTimeIso: string) => {
+    setClassToEdit({ date: dateTimeIso } as any);
+    setIsFormOpen(true);
   };
 
   const filteredClasses = classes.filter((c) => {
@@ -282,7 +292,7 @@ export function Schedule() {
     if (timeFilter === 'afternoon' && hour < 12) return false;
     
     // 2. Filter by Day of Week
-    if (viewMode === 'week' && selectedDayOfWeek !== null) {
+    if (viewMode === 'list' && selectedDayOfWeek !== null) {
       const day = classDate.getDay();
       if (day !== selectedDayOfWeek) return false;
     }
@@ -310,6 +320,34 @@ export function Schedule() {
         </div>
       )}
 
+      {/* POPUP VENTANA INTERACTIVA DE CLASE */}
+      <ClassDetailModal
+        classItem={selectedClassForModal}
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedClassForModal(null);
+        }}
+        bookings={selectedClassForModal ? (bookings[selectedClassForModal.id] || []) : []}
+        isUserBooked={selectedClassForModal ? userBookedIds.has(selectedClassForModal.id) : false}
+        userData={userData}
+        bookingLoading={bookingLoading === selectedClassForModal?.id}
+        onBook={handleBook}
+        onCancelBook={handleCancelBook}
+        onEditClass={(c) => {
+          setClassToEdit(c);
+          setIsFormOpen(true);
+        }}
+        onDuplicateClass={(c) => {
+          const duplicate = { ...c, id: undefined } as any;
+          setClassToEdit(duplicate);
+          setIsFormOpen(true);
+        }}
+        onDeleteClass={handleDeleteClass}
+        getGoogleCalendarUrl={getGoogleCalendarUrl}
+        handleDownloadIcs={handleDownloadIcs}
+      />
+
       <div className="container mx-auto px-4 md:px-12">
         <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
@@ -319,15 +357,15 @@ export function Schedule() {
               Encuentra tu momento de paz. Reserva tu espacio en nuestras clases presenciales y virtuales, diseñadas para cada nivel.
             </p>
           </div>
-          {userData?.role === 'admin' && (
+          {isAdminOrInstructor && (
             <Button
               onClick={() => {
                 setClassToEdit(null);
                 setIsFormOpen(true);
               }}
-              className="rounded-full bg-salvia px-8 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md h-fit"
+              className="rounded-full bg-salvia px-8 py-3 text-xs font-bold uppercase tracking-widest text-black hover:bg-salvia/90 shadow-md h-fit cursor-pointer"
             >
-              Crear Clase
+              + Crear Clase
             </Button>
           )}
         </div>
@@ -336,10 +374,23 @@ export function Schedule() {
         <div className="mb-8 flex flex-col gap-6 bg-marfil/40 p-6 rounded-3xl border border-arena/30">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             
-            {/* Vista Mode Selector (List vs Week) */}
+            {/* Vista Mode Selector (Week vs List) */}
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mr-2">Vista:</span>
               <div className="inline-flex rounded-full bg-white/50 p-1 border border-arena/20 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode('week');
+                  }}
+                  className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    viewMode === 'week' 
+                      ? 'bg-salvia text-black shadow-sm' 
+                      : 'text-gris hover:bg-white/30'
+                  }`}
+                >
+                  Calendario Semanal
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -348,26 +399,11 @@ export function Schedule() {
                   }}
                   className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     viewMode === 'list' 
-                      ? 'bg-salvia text-white shadow-sm' 
+                      ? 'bg-salvia text-black shadow-sm' 
                       : 'text-gris hover:bg-white/30'
                   }`}
                 >
                   Lista Completa
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewMode('week');
-                    const todayDay = new Date().getDay();
-                    setSelectedDayOfWeek(todayDay);
-                  }}
-                  className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    viewMode === 'week' 
-                      ? 'bg-salvia text-white shadow-sm' 
-                      : 'text-gris hover:bg-white/30'
-                  }`}
-                >
-                  Por Semana
                 </button>
               </div>
             </div>
@@ -381,7 +417,7 @@ export function Schedule() {
                   onClick={() => setTimeFilter('all')}
                   className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     timeFilter === 'all' 
-                      ? 'bg-salvia text-white shadow-sm' 
+                      ? 'bg-salvia text-black shadow-sm' 
                       : 'text-gris hover:bg-white/30'
                   }`}
                 >
@@ -392,7 +428,7 @@ export function Schedule() {
                   onClick={() => setTimeFilter('morning')}
                   className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     timeFilter === 'morning' 
-                      ? 'bg-salvia text-white shadow-sm' 
+                      ? 'bg-salvia text-black shadow-sm' 
                       : 'text-gris hover:bg-white/30'
                   }`}
                 >
@@ -403,7 +439,7 @@ export function Schedule() {
                   onClick={() => setTimeFilter('afternoon')}
                   className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     timeFilter === 'afternoon' 
-                      ? 'bg-salvia text-white shadow-sm' 
+                      ? 'bg-salvia text-black shadow-sm' 
                       : 'text-gris hover:bg-white/30'
                   }`}
                 >
@@ -414,21 +450,21 @@ export function Schedule() {
 
           </div>
 
-          {/* Week Selector (rendered only when viewMode === 'week') */}
-          {viewMode === 'week' && (
+          {/* Day Selector (rendered only when viewMode === 'list') */}
+          {viewMode === 'list' && (
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               className="border-t border-arena/20 pt-4 flex flex-col gap-2"
             >
-              <span className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Día de la semana:</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Filtrar por Día de la semana:</span>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedDayOfWeek(null)}
                   className={`rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-all border cursor-pointer ${
                     selectedDayOfWeek === null
-                      ? 'bg-salvia text-white border-salvia shadow-sm'
+                      ? 'bg-salvia text-black border-salvia shadow-sm'
                       : 'bg-white/50 border-arena/20 text-gris hover:bg-white/80'
                   }`}
                 >
@@ -441,7 +477,7 @@ export function Schedule() {
                     onClick={() => setSelectedDayOfWeek(day.value)}
                     className={`rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-all border cursor-pointer ${
                       selectedDayOfWeek === day.value
-                        ? 'bg-salvia text-white border-salvia shadow-sm'
+                        ? 'bg-salvia text-black border-salvia shadow-sm'
                         : 'bg-white/50 border-arena/20 text-gris hover:bg-white/80'
                     }`}
                   >
@@ -464,29 +500,42 @@ export function Schedule() {
               Si eres el administrador, ve a la consola de Firebase &gt; Firestore Database &gt; Rules y actualiza tus reglas para permitir lectura.
             </p>
           </div>
+        ) : viewMode === 'week' ? (
+          /* WEEKLY CALENDAR INTERACTIVE GRID VIEW (DEFAULT) */
+          <WeeklyScheduleGrid
+            classes={classes}
+            bookings={bookings}
+            userBookedIds={userBookedIds}
+            userData={userData}
+            onSelectClass={handleOpenClassModal}
+            onCreateClassAt={handleCreateClassAtSlot}
+            timeFilter={timeFilter}
+          />
         ) : (
+          /* LIST CARDS VIEW */
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {filteredClasses.length > 0 ? filteredClasses.map((c, i) => {
               const spotsTaken = bookings[c.id]?.length || 0;
               const spotsAvailable = c.capacity - spotsTaken;
               const isAlreadyBooked = userBookedIds.has(c.id);
               const isFull = spotsAvailable <= 0;
-              const isInactive = userData && userData.role !== 'admin' && !userData.subscriptionActive;
+              const isInactive = userData && !isAdminOrInstructor && !userData.subscriptionActive;
 
               return (
                 <motion.div
                   key={c.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="relative overflow-hidden rounded-[32px] border-[8px] border-white bg-arena shadow-xl transition-transform hover:-translate-y-1 hover:shadow-2xl flex flex-col justify-between min-h-[460px] p-6"
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => handleOpenClassModal(c)}
+                  className="relative overflow-hidden rounded-[32px] border-[8px] border-white bg-arena shadow-xl transition-transform hover:-translate-y-1 hover:shadow-2xl flex flex-col justify-between min-h-[460px] p-6 cursor-pointer group"
                 >
                   {/* Full Background Image & Dark Overlay */}
                   <div className="absolute inset-0 z-0">
                     <img 
                       src={c.image || `https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?q=80&w=500&auto=format&fit=crop&sig=${c.id}`} 
                       alt="Yoga Class" 
-                      className="w-full h-full object-cover" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/35"></div>
                   </div>
@@ -494,11 +543,18 @@ export function Schedule() {
                   {/* Content Overlay */}
                   <div className="relative z-10 flex-1 flex flex-col justify-between h-full w-full">
                     <div>
-                      <span className="rounded-full bg-white/90 px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-terracota shadow-sm">
-                        {c.level}
-                      </span>
+                      <div className="flex justify-between items-center">
+                        <span className="rounded-full bg-white/90 px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-terracota shadow-sm">
+                          {c.level}
+                        </span>
+                        {isAlreadyBooked && (
+                          <span className="rounded-full bg-salvia px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-black shadow-sm">
+                            ✓ Reservado
+                          </span>
+                        )}
+                      </div>
                       
-                      <h3 className="font-serif text-2xl text-gris mt-6 mb-1 font-medium drop-shadow-md">{c.title}</h3>
+                      <h3 className="font-serif text-2xl text-gris mt-6 mb-1 font-medium drop-shadow-md group-hover:text-salvia transition-colors">{c.title}</h3>
                       <p className="text-xs text-gris/70 italic mb-6 drop-shadow-sm">Guiado por {c.instructor}</p>
                       
                       <div className="space-y-3 text-sm text-gris/85 border-t border-white/30 pt-4 drop-shadow-sm">
@@ -519,8 +575,8 @@ export function Schedule() {
                       </div>
                     </div>
                     
-                    <div className="flex flex-col gap-2 mt-6">
-                      {userData?.role === 'admin' ? (
+                    <div className="flex flex-col gap-2 mt-6" onClick={(e) => e.stopPropagation()}>
+                      {isAdminOrInstructor ? (
                         <>
                           <div className="flex gap-2">
                             <Button 
@@ -528,7 +584,7 @@ export function Schedule() {
                                 setClassToEdit(c);
                                 setIsFormOpen(true);
                               }} 
-                              className="flex-1 rounded-full bg-salvia py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-salvia/90 transition-colors shadow-md animate-none"
+                              className="flex-1 rounded-full bg-salvia py-3 text-xs font-bold uppercase tracking-widest text-black hover:bg-salvia/90 transition-colors shadow-md animate-none cursor-pointer"
                             >
                               Editar
                             </Button>
@@ -538,14 +594,14 @@ export function Schedule() {
                                 setClassToEdit(duplicate);
                                 setIsFormOpen(true);
                               }} 
-                              className="flex-1 rounded-full bg-arena py-3 text-xs font-bold uppercase tracking-widest text-gris hover:bg-arena transition-colors border border-arena shadow-md"
+                              className="flex-1 rounded-full bg-arena py-3 text-xs font-bold uppercase tracking-widest text-gris hover:bg-arena transition-colors border border-arena shadow-md cursor-pointer"
                             >
                               Duplicar
                             </Button>
                           </div>
                           <Button 
                             onClick={() => handleDeleteClass(c.id)} 
-                            className="w-full rounded-full bg-red-50/10 border border-red-500/30 py-3 text-xs font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition-colors shadow-md"
+                            className="w-full rounded-full bg-red-50/10 border border-red-500/30 py-3 text-xs font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition-colors shadow-md cursor-pointer"
                           >
                             Eliminar
                           </Button>
@@ -555,14 +611,14 @@ export function Schedule() {
                           <Button 
                             disabled={bookingLoading === c.id || (isFull && !isAlreadyBooked) || (isInactive && !isAlreadyBooked)}
                             onClick={() => handleBook(c)} 
-                            className={`w-full rounded-full py-6 text-xs font-bold uppercase tracking-widest text-white transition-colors ${
+                            className={`w-full rounded-full py-6 text-xs font-bold uppercase tracking-widest text-white transition-colors cursor-pointer ${
                               isAlreadyBooked 
                                 ? 'bg-terracota hover:bg-red-600 shadow-md' 
                                 : isInactive
                                   ? 'bg-red-50 text-red-600 border border-red-200 cursor-not-allowed hover:bg-red-50'
                                   : isFull 
                                     ? 'bg-gris/40 cursor-not-allowed' 
-                                    : 'bg-gris hover:bg-salvia'
+                                    : 'bg-gris text-black hover:bg-salvia'
                             }`}
                           >
                             {bookingLoading === c.id 
@@ -588,13 +644,13 @@ export function Schedule() {
                               </Button>
 
                               {activeDropdownId === c.id && (
-                                <div className="absolute right-0 left-0 bottom-full mb-2 z-20 rounded-2xl bg-white shadow-xl border border-arena/20 p-2 space-y-1">
+                                <div className="absolute right-0 left-0 bottom-full mb-2 z-20 rounded-2xl bg-[#18181b] shadow-xl border border-white/20 p-2 space-y-1">
                                   <a
                                     href={getGoogleCalendarUrl(c)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={() => setActiveDropdownId(null)}
-                                    className="block w-full text-center px-4 py-2.5 text-xs font-semibold text-gris hover:bg-salvia/10 hover:text-salvia rounded-xl transition-colors cursor-pointer"
+                                    className="block w-full text-center px-4 py-2.5 text-xs font-semibold text-white/90 hover:bg-salvia/20 hover:text-salvia rounded-xl transition-colors cursor-pointer"
                                   >
                                     Google Calendar
                                   </a>
@@ -604,7 +660,7 @@ export function Schedule() {
                                       handleDownloadIcs(c);
                                       setActiveDropdownId(null);
                                     }}
-                                    className="block w-full text-center px-4 py-2.5 text-xs font-semibold text-gris hover:bg-salvia/10 hover:text-salvia rounded-xl transition-colors cursor-pointer"
+                                    className="block w-full text-center px-4 py-2.5 text-xs font-semibold text-white/90 hover:bg-salvia/20 hover:text-salvia rounded-xl transition-colors cursor-pointer"
                                   >
                                     Apple / Outlook / Android (.ics)
                                   </button>

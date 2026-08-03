@@ -8,7 +8,7 @@ export interface UserData {
   name: string;
   email: string;
   phone?: string;
-  role: 'admin' | 'instructor' | 'student';
+  role: 'superadmin' | 'admin' | 'instructor' | 'student';
   tenantId?: string;
   membershipId?: string;
   subscriptionActive?: boolean;
