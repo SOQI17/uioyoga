@@ -18,76 +18,52 @@ interface WeeklyScheduleGridProps {
   timeFilter: 'all' | 'morning' | 'afternoon';
 }
 
+const COLOR_PALETTES = [
+  { bg: 'bg-amber-500/25 hover:bg-amber-500/40', border: 'border-amber-500/70', text: 'text-amber-300', badgeBg: 'bg-amber-500 text-black', glow: 'shadow-amber-500/20' },
+  { bg: 'bg-yellow-400/25 hover:bg-yellow-400/40', border: 'border-yellow-400/70', text: 'text-yellow-300', badgeBg: 'bg-yellow-400 text-black', glow: 'shadow-yellow-400/20' },
+  { bg: 'bg-emerald-500/25 hover:bg-emerald-500/40', border: 'border-emerald-500/70', text: 'text-emerald-300', badgeBg: 'bg-emerald-500 text-black', glow: 'shadow-emerald-500/20' },
+  { bg: 'bg-indigo-500/25 hover:bg-indigo-500/40', border: 'border-indigo-500/70', text: 'text-indigo-300', badgeBg: 'bg-indigo-500 text-white', glow: 'shadow-indigo-500/20' },
+  { bg: 'bg-cyan-500/25 hover:bg-cyan-500/40', border: 'border-cyan-500/70', text: 'text-cyan-300', badgeBg: 'bg-cyan-500 text-black', glow: 'shadow-cyan-500/20' },
+  { bg: 'bg-rose-500/25 hover:bg-rose-500/40', border: 'border-rose-500/70', text: 'text-rose-300', badgeBg: 'bg-rose-500 text-white', glow: 'shadow-rose-500/20' },
+  { bg: 'bg-purple-500/25 hover:bg-purple-500/40', border: 'border-purple-500/70', text: 'text-purple-300', badgeBg: 'bg-purple-500 text-white', glow: 'shadow-purple-500/20' },
+  { bg: 'bg-teal-400/25 hover:bg-teal-400/40', border: 'border-teal-400/70', text: 'text-teal-300', badgeBg: 'bg-teal-400 text-black', glow: 'shadow-teal-400/20' },
+  { bg: 'bg-orange-500/25 hover:bg-orange-500/40', border: 'border-orange-500/70', text: 'text-orange-300', badgeBg: 'bg-orange-500 text-black', glow: 'shadow-orange-500/20' },
+  { bg: 'bg-sky-400/25 hover:bg-sky-400/40', border: 'border-sky-400/70', text: 'text-sky-300', badgeBg: 'bg-sky-400 text-black', glow: 'shadow-sky-400/20' },
+];
+
 // Map class names to distinct colors & abbreviations (matching Image 2)
 export function getClassStyle(title: string) {
-  const lower = title.toLowerCase().trim();
+  const cleanTitle = (title || 'Yoga').trim();
+  const lower = cleanTitle.toLowerCase();
   
   if (lower.includes('warrior') || lower.startsWith('w')) {
-    return {
-      letter: 'W',
-      bg: 'bg-amber-500/25 hover:bg-amber-500/40',
-      border: 'border-amber-500/70',
-      text: 'text-amber-300',
-      badgeBg: 'bg-amber-500 text-black',
-      glow: 'shadow-amber-500/20',
-      legendColor: '#f59e0b'
-    };
+    return { letter: 'W', ...COLOR_PALETTES[0] };
   }
   if (lower.includes('dancer') || lower.startsWith('d')) {
-    return {
-      letter: 'D',
-      bg: 'bg-yellow-400/25 hover:bg-yellow-400/40',
-      border: 'border-yellow-400/70',
-      text: 'text-yellow-300',
-      badgeBg: 'bg-yellow-400 text-black',
-      glow: 'shadow-yellow-400/20',
-      legendColor: '#eab308'
-    };
+    return { letter: 'D', ...COLOR_PALETTES[1] };
   }
   if (lower.includes('animal') || lower.startsWith('a')) {
-    return {
-      letter: 'A',
-      bg: 'bg-emerald-500/25 hover:bg-emerald-500/40',
-      border: 'border-emerald-500/70',
-      text: 'text-emerald-300',
-      badgeBg: 'bg-emerald-500 text-black',
-      glow: 'shadow-emerald-500/20',
-      legendColor: '#10b981'
-    };
+    return { letter: 'A', ...COLOR_PALETTES[2] };
   }
   if (lower.includes('espejo') || lower.startsWith('e')) {
-    return {
-      letter: 'E',
-      bg: 'bg-indigo-500/25 hover:bg-indigo-500/40',
-      border: 'border-indigo-500/70',
-      text: 'text-indigo-300',
-      badgeBg: 'bg-indigo-500 text-white',
-      glow: 'shadow-indigo-500/20',
-      legendColor: '#6366f1'
-    };
+    return { letter: 'E', ...COLOR_PALETTES[3] };
   }
   if (lower.includes('mente') || lower.includes('buda') || lower.startsWith('b')) {
-    return {
-      letter: 'B',
-      bg: 'bg-cyan-500/25 hover:bg-cyan-500/40',
-      border: 'border-cyan-500/70',
-      text: 'text-cyan-300',
-      badgeBg: 'bg-cyan-500 text-black',
-      glow: 'shadow-cyan-500/20',
-      legendColor: '#06b6d4'
-    };
+    return { letter: 'B', ...COLOR_PALETTES[4] };
   }
-  
-  // Default dynamic styles
-  const letter = title.charAt(0).toUpperCase() || 'Y';
+
+  // Dynamic style calculation for any custom class title written by admin/instructor
+  const letter = cleanTitle.charAt(0).toUpperCase() || 'Y';
+  let hash = 0;
+  for (let i = 0; i < cleanTitle.length; i++) {
+    hash = cleanTitle.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const paletteIndex = Math.abs(hash) % COLOR_PALETTES.length;
+  const palette = COLOR_PALETTES[paletteIndex];
+
   return {
     letter,
-    bg: 'bg-salvia/25 hover:bg-salvia/40',
-    border: 'border-salvia/70',
-    text: 'text-salvia',
-    badgeBg: 'bg-salvia text-black',
-    glow: 'shadow-salvia/20',
-    legendColor: '#9ca688'
+    ...palette
   };
 }
 
@@ -155,32 +131,34 @@ export function WeeklyScheduleGrid({
     });
   }, [classes, timeFilter]);
 
-  // Extract unique class types for the Legend (matching reference image)
+  // Extract unique class types dynamically from active classes written by admin/instructor
   const legendItems = useMemo(() => {
     const map = new Map<string, { letter: string; title: string; style: ReturnType<typeof getClassStyle> }>();
     
-    // Default reference types
-    const defaults = [
-      'Warrior Vinyasa',
-      'Dancer Vinyasa',
-      'Animal Vinyasa',
-      'Espejo del Sabio',
-      'Mente de Buda'
-    ];
-
-    defaults.forEach(title => {
-      const style = getClassStyle(title);
-      map.set(title.toLowerCase(), { letter: style.letter, title, style });
-    });
-
-    classes.forEach(c => {
-      if (!c.title) return;
-      const key = c.title.toLowerCase();
-      if (!map.has(key)) {
-        const style = getClassStyle(c.title);
-        map.set(key, { letter: style.letter, title: c.title, style });
-      }
-    });
+    if (classes.length > 0) {
+      classes.forEach(c => {
+        if (!c.title || !c.title.trim()) return;
+        const trimmedTitle = c.title.trim();
+        const key = trimmedTitle.toLowerCase();
+        if (!map.has(key)) {
+          const style = getClassStyle(trimmedTitle);
+          map.set(key, { letter: style.letter, title: trimmedTitle, style });
+        }
+      });
+    } else {
+      // Default reference fallback if no classes exist yet
+      const defaults = [
+        'Warrior Vinyasa',
+        'Dancer Vinyasa',
+        'Animal Vinyasa',
+        'Espejo del Sabio',
+        'Mente de Buda'
+      ];
+      defaults.forEach(title => {
+        const style = getClassStyle(title);
+        map.set(title.toLowerCase(), { letter: style.letter, title, style });
+      });
+    }
 
     return Array.from(map.values());
   }, [classes]);
