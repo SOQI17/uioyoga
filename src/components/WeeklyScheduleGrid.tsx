@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
-  Plus, CheckCircle2, User, Clock, Info, ShieldAlert 
+  Plus, CheckCircle2, User, Clock, Info, ShieldAlert, LayoutGrid, ListFilter 
 } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -105,6 +105,16 @@ export function WeeklyScheduleGrid({
     return startOfWeek(new Date(), { weekStartsOn: 1 });
   });
 
+  // Selected Day Index for Mobile View (0 = Lun, 6 = Dom). Defaults to today's day index if in current week
+  const [selectedMobileDayIndex, setSelectedMobileDayIndex] = useState<number>(() => {
+    const today = new Date();
+    const day = today.getDay(); // 0 is Sunday, 1 is Monday
+    return day === 0 ? 6 : day - 1;
+  });
+
+  // Mobile layout view mode toggle ('day' = Agenda por día en móvil, 'table' = Tabla completa)
+  const [mobileLayoutMode, setMobileLayoutMode] = useState<'day' | 'table'>('day');
+
   const isAdminOrInstructor = userData?.role === 'admin' || userData?.role === 'instructor' || userData?.role === 'superadmin';
 
   // Calculate the 7 days (Monday to Sunday) for the selected week
@@ -195,27 +205,35 @@ export function WeeklyScheduleGrid({
   // Week navigation handlers
   const handlePrevWeek = () => setCurrentMonday(prev => addDays(prev, -7));
   const handleNextWeek = () => setCurrentMonday(prev => addDays(prev, 7));
-  const handleToday = () => setCurrentMonday(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const handleToday = () => {
+    const todayMonday = startOfWeek(new Date(), { weekStartsOn: 1 });
+    setCurrentMonday(todayMonday);
+    const day = new Date().getDay();
+    setSelectedMobileDayIndex(day === 0 ? 6 : day - 1);
+  };
 
   const sunday = addDays(currentMonday, 6);
   const dateRangeText = `del ${format(currentMonday, "dd", { locale: es })} al ${format(sunday, "dd 'de' MMMM", { locale: es })}`;
 
+  // Selected Day for mobile single-day agenda view
+  const activeMobileDay = weekDays[selectedMobileDayIndex];
+
   return (
     <div className="w-full space-y-6">
       {/* HEADER & WEEK NAVIGATION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#141416] p-6 rounded-3xl border border-[#4a2e1b]/40 shadow-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#141416] p-4 sm:p-6 rounded-3xl border border-[#4a2e1b]/40 shadow-xl">
         <div>
           <div className="flex items-center gap-2">
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-salvia animate-pulse"></span>
-            <span className="text-[11px] font-bold uppercase tracking-widest text-salvia">Calendario Interactivo</span>
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-salvia">Calendario Interactivo</span>
           </div>
-          <h2 className="font-serif text-3xl font-medium text-white capitalize mt-1">
+          <h2 className="font-serif text-2xl sm:text-3xl font-medium text-white capitalize mt-1">
             Horarios de clase {dateRangeText}
           </h2>
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex items-center gap-2 self-start md:self-auto">
+        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-start">
           <button
             type="button"
             onClick={handlePrevWeek}
@@ -228,7 +246,7 @@ export function WeeklyScheduleGrid({
           <button
             type="button"
             onClick={handleToday}
-            className="px-5 py-2.5 rounded-full bg-white/10 border border-white/15 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/20 transition-all cursor-pointer"
+            className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/10 border border-white/15 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/20 transition-all cursor-pointer"
           >
             Esta Semana
           </button>
@@ -244,15 +262,79 @@ export function WeeklyScheduleGrid({
         </div>
       </div>
 
+      {/* MOBILE DISPLAY CONTROLS & DAY SELECTOR TABS (Visible on Mobile Screens) */}
+      <div className="block md:hidden space-y-4">
+        {/* Toggle between Mobile Day Agenda View and Full Table Grid */}
+        <div className="flex items-center justify-between bg-[#121214] p-2 rounded-2xl border border-white/10">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-white/50 pl-2">Vista Móvil:</span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setMobileLayoutMode('day')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
+                mobileLayoutMode === 'day' 
+                  ? 'bg-salvia text-black shadow-md' 
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <ListFilter className="w-3.5 h-3.5" /> Agenda Día
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileLayoutMode('table')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
+                mobileLayoutMode === 'table' 
+                  ? 'bg-salvia text-black shadow-md' 
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> Tabla Grid
+            </button>
+          </div>
+        </div>
+
+        {/* Horizontal Mobile Days Selector Tabs */}
+        {mobileLayoutMode === 'day' && (
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+            {weekDays.map((day, idx) => {
+              const isSelected = selectedMobileDayIndex === idx;
+              const isCurrentDay = isToday(day);
+
+              return (
+                <button
+                  key={day.toISOString()}
+                  type="button"
+                  onClick={() => setSelectedMobileDayIndex(idx)}
+                  className={`flex-1 min-w-[62px] py-2.5 px-2 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center ${
+                    isSelected
+                      ? 'bg-salvia text-black border-salvia font-black shadow-lg scale-105'
+                      : isCurrentDay
+                        ? 'bg-salvia/20 text-salvia border-salvia/50 font-bold'
+                        : 'bg-[#141416] text-white/70 border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  <span className="text-[10px] uppercase font-bold tracking-wider">
+                    {format(day, "EEE", { locale: es })}
+                  </span>
+                  <span className="text-sm font-serif font-bold mt-0.5">
+                    {format(day, "d", { locale: es })}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* LEGEND BAR (Matching Image 2 Reference) */}
-      <div className="bg-[#121214] p-5 rounded-3xl border border-white/10 shadow-lg">
+      <div className="bg-[#121214] p-4 sm:p-5 rounded-3xl border border-white/10 shadow-lg">
         <span className="text-[10px] font-bold uppercase tracking-widest text-white/50 block mb-3">
           Leyenda de Clases:
         </span>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-2.5">
           {legendItems.map((item) => (
             <div key={item.title} className="flex items-center gap-2">
-              <span className={`flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black font-serif border ${item.style.border} ${item.style.badgeBg} shadow-sm`}>
+              <span className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg text-xs font-black font-serif border ${item.style.border} ${item.style.badgeBg} shadow-sm`}>
                 {item.letter}
               </span>
               <span className="text-xs font-medium text-white/90">
@@ -265,16 +347,131 @@ export function WeeklyScheduleGrid({
 
       {/* ADMIN HELPER BANNER */}
       {isAdminOrInstructor && (
-        <div className="bg-salvia/10 border border-salvia/30 rounded-2xl p-4 flex items-center gap-3 text-xs text-salvia">
-          <Info className="w-4 h-4 shrink-0" />
+        <div className="bg-salvia/10 border border-salvia/30 rounded-2xl p-4 flex items-start sm:items-center gap-3 text-xs text-salvia">
+          <Info className="w-4 h-4 shrink-0 mt-0.5 sm:mt-0" />
           <span>
-            <strong>Modo Edición Activado:</strong> Haz clic en cualquier recuadro pintado para editar, duplicar o eliminar una clase. Haz clic en un espacio vacío para crear una nueva clase en ese día y hora.
+            <strong>Modo Edición Activado:</strong> Haz clic en cualquier recuadro pintado para ver/editar/eliminar una clase. Haz clic en un espacio vacío para crear una nueva clase.
           </span>
         </div>
       )}
 
-      {/* WEEKLY GRID TABLE */}
-      <div className="overflow-x-auto rounded-3xl border-4 border-[#4a2e1b] bg-[#0c0c0e] shadow-2xl no-scrollbar">
+      {/* MOBILE DAY AGENDA VIEW (Rendered on mobile screens when mobileLayoutMode === 'day') */}
+      <div className="block md:hidden">
+        {mobileLayoutMode === 'day' && (
+          <div className="space-y-3 bg-[#0c0c0e] p-4 rounded-3xl border-4 border-[#4a2e1b] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/15 pb-3">
+              <span className="text-sm font-serif font-bold text-white capitalize">
+                {format(activeMobileDay, "EEEE d 'de' MMMM", { locale: es })}
+              </span>
+              {isToday(activeMobileDay) && (
+                <span className="text-[9px] font-bold uppercase tracking-widest text-black bg-salvia px-2.5 py-0.5 rounded-full">
+                  Hoy
+                </span>
+              )}
+            </div>
+
+            {timeSlots.length > 0 ? (
+              timeSlots.map((slot) => {
+                const slotClasses = getClassesForSlot(activeMobileDay, slot);
+
+                // Build ISO string for creating class in empty cell
+                const [h, m] = slot.split(':').map(Number);
+                const cellDate = new Date(activeMobileDay);
+                cellDate.setHours(h, m, 0, 0);
+
+                const tzoffset = cellDate.getTimezoneOffset() * 60000;
+                const localIso = new Date(cellDate.getTime() - tzoffset).toISOString().slice(0, 16);
+
+                return (
+                  <div key={slot} className="flex gap-3 items-stretch border-b border-white/5 pb-3 last:border-b-0">
+                    {/* Time Slot Badge */}
+                    <div className="w-16 shrink-0 flex items-center justify-center font-mono text-xs font-bold text-amber-300 bg-black/40 border border-white/10 rounded-2xl px-2 py-3">
+                      {slot}
+                    </div>
+
+                    {/* Classes or Empty Slot */}
+                    <div className="flex-1 space-y-2">
+                      {slotClasses.length > 0 ? (
+                        slotClasses.map((c) => {
+                          const style = getClassStyle(c.title);
+                          const isBooked = userBookedIds.has(c.id);
+                          const spotsTaken = bookings[c.id]?.length || 0;
+                          const spotsAvailable = c.capacity - spotsTaken;
+                          const isFull = spotsAvailable <= 0;
+
+                          return (
+                            <motion.div
+                              key={c.id}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => onSelectClass(c)}
+                              className={`relative rounded-2xl p-3 border-2 ${style.border} ${style.bg} shadow-md transition-all cursor-pointer flex items-center justify-between`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-black font-serif border ${style.border} ${style.badgeBg} shadow-sm`}>
+                                  {style.letter}
+                                </span>
+                                <div>
+                                  <h4 className="text-xs font-bold text-white leading-tight">
+                                    {c.title}
+                                  </h4>
+                                  <p className="text-[10px] text-white/70 italic mt-0.5">
+                                    {c.instructor} • {c.duration} min
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col items-end gap-1">
+                                {isBooked && (
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-black bg-salvia px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    ✓ Reservado
+                                  </span>
+                                )}
+                                <span className={`text-[10px] font-semibold ${isFull ? 'text-red-400' : 'text-salvia'}`}>
+                                  {isFull ? 'Agotado' : `${spotsAvailable}/${c.capacity} cupos`}
+                                </span>
+                              </div>
+                            </motion.div>
+                          );
+                        })
+                      ) : (
+                        <div
+                          onClick={() => {
+                            if (isAdminOrInstructor) {
+                              onCreateClassAt(localIso);
+                            }
+                          }}
+                          className={`h-full min-h-[44px] rounded-2xl border border-dashed flex items-center justify-center ${
+                            isAdminOrInstructor
+                              ? 'border-white/15 bg-white/5 text-salvia text-xs font-semibold cursor-pointer active:bg-salvia/20'
+                              : 'border-transparent text-white/20 text-[10px]'
+                          }`}
+                        >
+                          {isAdminOrInstructor ? (
+                            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider">
+                              <Plus className="w-3.5 h-3.5" /> Crear Clase en {slot}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] italic text-white/30">Sin clase programada</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-8 text-center text-white/40 text-xs">
+                No hay clases disponibles en este horario.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* FULL WEEKLY GRID TABLE (Visible on Desktop OR on Mobile when layout mode is 'table') */}
+      <div className={`overflow-x-auto rounded-3xl border-4 border-[#4a2e1b] bg-[#0c0c0e] shadow-2xl no-scrollbar ${
+        mobileLayoutMode === 'day' ? 'hidden md:block' : 'block'
+      }`}>
         <div className="min-w-[768px]">
           {/* HEADER ROW: TIME / DAYS */}
           <div className="grid grid-cols-8 border-b-2 border-white/15 bg-[#18181b]">

@@ -68,16 +68,16 @@ export function ClassDetailModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="relative w-full max-w-lg rounded-[32px] border-[6px] border-[#4a2e1b] bg-arena shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-lg rounded-[28px] sm:rounded-[32px] border-4 sm:border-[6px] border-[#4a2e1b] bg-arena shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
         >
           {/* Header Image with Dark Overlay */}
-          <div className="relative h-48 sm:h-56 w-full overflow-hidden shrink-0">
+          <div className="relative h-40 sm:h-56 w-full overflow-hidden shrink-0">
             <img
               src={classItem.image || `https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?q=80&w=800&auto=format&fit=crop`}
               alt={classItem.title}
@@ -111,7 +111,7 @@ export function ClassDetailModal({
           </div>
 
           {/* Body Content */}
-          <div className="p-6 overflow-y-auto space-y-6 flex-1 text-gris">
+          <div className="p-4 sm:p-6 overflow-y-auto space-y-5 sm:space-y-6 flex-1 text-gris">
             {/* Class Stats Cards */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white/10 rounded-2xl p-3 border border-white/10 flex flex-col items-center justify-center text-center">
