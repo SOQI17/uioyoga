@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy, deleteDoc, doc, addDoc, getDoc, updateDoc, where } from 'firebase/firestore';
 import { db, getTenantId } from '../lib/firebase';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Button } from '../components/ui/Button';
-import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { AdminClassForm } from '../components/AdminClassForm';
@@ -23,25 +20,12 @@ export function Schedule() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [classToEdit, setClassToEdit] = useState<YogaClass | null>(null);
 
-  // Default view is 'week' (Calendario Semanal Interactivo)
-  const [viewMode, setViewMode] = useState<'week' | 'list'>('week');
+  // Time filter state
   const [timeFilter, setTimeFilter] = useState<'all' | 'morning' | 'afternoon'>('all');
-  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number | null>(null);
-  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
 
   // Detail Modal Popup state
   const [selectedClassForModal, setSelectedClassForModal] = useState<YogaClass | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-
-  const DAYS_OF_WEEK = [
-    { name: 'Lunes', value: 1 },
-    { name: 'Martes', value: 2 },
-    { name: 'Miércoles', value: 3 },
-    { name: 'Jueves', value: 4 },
-    { name: 'Viernes', value: 5 },
-    { name: 'Sábado', value: 6 },
-    { name: 'Domingo', value: 0 }
-  ];
 
   const isAdminOrInstructor = userData?.role === 'admin' || userData?.role === 'instructor' || userData?.role === 'superadmin';
 
@@ -53,7 +37,7 @@ export function Schedule() {
       return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
     };
     
-    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Yoga: ${c.title}`)}&dates=${toGCalString(startDate)}/${toGCalString(endDate)}&details=${encodeURIComponent(`Clase de Yoga guiada por ${c.instructor}.\nNivel: ${c.level}\nDuración: ${c.duration} minutos.`)}&sf=true&output=xml`;
+    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Yoga: ${c.title}`)}&dates=${toGCalString(startDate)}/${toGCalString(endDate)}&details=${encodeURIComponent(`Clase de Yoga${c.instructor ? ` guiada por ${c.instructor}` : ''}.\nNivel: ${c.level}\nDuración: ${c.duration} minutos.`)}&sf=true&output=xml`;
   };
 
   const handleDownloadIcs = (c: YogaClass) => {
@@ -74,7 +58,7 @@ export function Schedule() {
       `DTSTART:${toIcsString(startDate)}`,
       `DTEND:${toIcsString(endDate)}`,
       `SUMMARY:Yoga: ${c.title}`,
-      `DESCRIPTION:Clase de Yoga guiada por ${c.instructor}. Nivel: ${c.level}.`,
+      `DESCRIPTION:Clase de Yoga${c.instructor ? ` guiada por ${c.instructor}` : ''}. Nivel: ${c.level}.`,
       "END:VEVENT",
       "END:VCALENDAR"
     ].join("\r\n");
@@ -283,23 +267,6 @@ export function Schedule() {
     setIsFormOpen(true);
   };
 
-  const filteredClasses = classes.filter((c) => {
-    const classDate = new Date(c.date);
-    
-    // 1. Filter by Mañana / Tarde
-    const hour = classDate.getHours();
-    if (timeFilter === 'morning' && hour >= 12) return false;
-    if (timeFilter === 'afternoon' && hour < 12) return false;
-    
-    // 2. Filter by Day of Week
-    if (viewMode === 'list' && selectedDayOfWeek !== null) {
-      const day = classDate.getDay();
-      if (day !== selectedDayOfWeek) return false;
-    }
-    
-    return true;
-  });
-
   return (
     <div className="min-h-screen bg-marfil py-16 relative">
       {/* MODAL PARA CREAR/EDITAR CLASES */}
@@ -370,123 +337,46 @@ export function Schedule() {
           )}
         </div>
 
-        {/* FILTERS & VIEWS BAR */}
-        <div className="mb-8 flex flex-col gap-6 bg-marfil/40 p-6 rounded-3xl border border-arena/30">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            
-            {/* Vista Mode Selector (Week vs List) */}
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mr-2">Vista:</span>
-              <div className="inline-flex rounded-full bg-white/50 p-1 border border-arena/20 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewMode('week');
-                  }}
-                  className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    viewMode === 'week' 
-                      ? 'bg-salvia text-black shadow-sm' 
-                      : 'text-gris hover:bg-white/30'
-                  }`}
-                >
-                  Calendario Semanal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewMode('list');
-                    setSelectedDayOfWeek(null);
-                  }}
-                  className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    viewMode === 'list' 
-                      ? 'bg-salvia text-black shadow-sm' 
-                      : 'text-gris hover:bg-white/30'
-                  }`}
-                >
-                  Lista Completa
-                </button>
-              </div>
+        {/* FILTERS BAR */}
+        <div className="mb-8 flex items-center justify-between bg-marfil/40 p-6 rounded-3xl border border-arena/30">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mr-2">Filtrar Horario:</span>
+            <div className="inline-flex rounded-full bg-white/50 p-1 border border-arena/20 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setTimeFilter('all')}
+                className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  timeFilter === 'all' 
+                    ? 'bg-salvia text-black shadow-sm' 
+                    : 'text-gris hover:bg-white/30'
+                }`}
+              >
+                Todas
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeFilter('morning')}
+                className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  timeFilter === 'morning' 
+                    ? 'bg-salvia text-black shadow-sm' 
+                    : 'text-gris hover:bg-white/30'
+                }`}
+              >
+                Mañana
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeFilter('afternoon')}
+                className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  timeFilter === 'afternoon' 
+                    ? 'bg-salvia text-black shadow-sm' 
+                    : 'text-gris hover:bg-white/30'
+                }`}
+              >
+                Tarde
+              </button>
             </div>
-
-            {/* Time Filter Selector (Mañana vs Tarde) */}
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mr-2">Horario:</span>
-              <div className="inline-flex rounded-full bg-white/50 p-1 border border-arena/20 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setTimeFilter('all')}
-                  className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    timeFilter === 'all' 
-                      ? 'bg-salvia text-black shadow-sm' 
-                      : 'text-gris hover:bg-white/30'
-                  }`}
-                >
-                  Todas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTimeFilter('morning')}
-                  className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    timeFilter === 'morning' 
-                      ? 'bg-salvia text-black shadow-sm' 
-                      : 'text-gris hover:bg-white/30'
-                  }`}
-                >
-                  Mañana
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTimeFilter('afternoon')}
-                  className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    timeFilter === 'afternoon' 
-                      ? 'bg-salvia text-black shadow-sm' 
-                      : 'text-gris hover:bg-white/30'
-                  }`}
-                >
-                  Tarde
-                </button>
-              </div>
-            </div>
-
           </div>
-
-          {/* Day Selector (rendered only when viewMode === 'list') */}
-          {viewMode === 'list' && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="border-t border-arena/20 pt-4 flex flex-col gap-2"
-            >
-              <span className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-1">Filtrar por Día de la semana:</span>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedDayOfWeek(null)}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-all border cursor-pointer ${
-                    selectedDayOfWeek === null
-                      ? 'bg-salvia text-black border-salvia shadow-sm'
-                      : 'bg-white/50 border-arena/20 text-gris hover:bg-white/80'
-                  }`}
-                >
-                  Todos los días
-                </button>
-                {DAYS_OF_WEEK.map((day) => (
-                  <button
-                    key={day.name}
-                    type="button"
-                    onClick={() => setSelectedDayOfWeek(day.value)}
-                    className={`rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-all border cursor-pointer ${
-                      selectedDayOfWeek === day.value
-                        ? 'bg-salvia text-black border-salvia shadow-sm'
-                        : 'bg-white/50 border-arena/20 text-gris hover:bg-white/80'
-                    }`}
-                  >
-                    {day.name}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
         </div>
 
         {loading ? (
@@ -500,8 +390,8 @@ export function Schedule() {
               Si eres el administrador, ve a la consola de Firebase &gt; Firestore Database &gt; Rules y actualiza tus reglas para permitir lectura.
             </p>
           </div>
-        ) : viewMode === 'week' ? (
-          /* WEEKLY CALENDAR INTERACTIVE GRID VIEW (DEFAULT) */
+        ) : (
+          /* WEEKLY CALENDAR INTERACTIVE GRID VIEW */
           <WeeklyScheduleGrid
             classes={classes}
             bookings={bookings}
@@ -511,180 +401,6 @@ export function Schedule() {
             onCreateClassAt={handleCreateClassAtSlot}
             timeFilter={timeFilter}
           />
-        ) : (
-          /* LIST CARDS VIEW */
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {filteredClasses.length > 0 ? filteredClasses.map((c, i) => {
-              const spotsTaken = bookings[c.id]?.length || 0;
-              const spotsAvailable = c.capacity - spotsTaken;
-              const isAlreadyBooked = userBookedIds.has(c.id);
-              const isFull = spotsAvailable <= 0;
-              const isInactive = userData && !isAdminOrInstructor && !userData.subscriptionActive;
-
-              return (
-                <motion.div
-                  key={c.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  onClick={() => handleOpenClassModal(c)}
-                  className="relative overflow-hidden rounded-[32px] border-[8px] border-white bg-arena shadow-xl transition-transform hover:-translate-y-1 hover:shadow-2xl flex flex-col justify-between min-h-[460px] p-6 cursor-pointer group"
-                >
-                  {/* Full Background Image & Dark Overlay */}
-                  <div className="absolute inset-0 z-0">
-                    <img 
-                      src={c.image || `https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?q=80&w=500&auto=format&fit=crop&sig=${c.id}`} 
-                      alt="Yoga Class" 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/35"></div>
-                  </div>
-
-                  {/* Content Overlay */}
-                  <div className="relative z-10 flex-1 flex flex-col justify-between h-full w-full">
-                    <div>
-                      <div className="flex justify-between items-center">
-                        <span className="rounded-full bg-white/90 px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-terracota shadow-sm">
-                          {c.level}
-                        </span>
-                        {isAlreadyBooked && (
-                          <span className="rounded-full bg-salvia px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-black shadow-sm">
-                            ✓ Reservado
-                          </span>
-                        )}
-                      </div>
-                      
-                      <h3 className="font-serif text-2xl text-gris mt-6 mb-1 font-medium drop-shadow-md group-hover:text-salvia transition-colors">{c.title}</h3>
-                      {c.instructor ? (
-                        <p className="text-xs text-gris/70 italic mb-6 drop-shadow-sm">Guiado por {c.instructor}</p>
-                      ) : (
-                        <div className="mb-6"></div>
-                      )}
-                      
-                      <div className="space-y-3 text-sm text-gris/85 border-t border-white/30 pt-4 drop-shadow-sm">
-                        <div className="flex justify-between items-center border-b border-white/20 pb-2">
-                          <span className="text-xs uppercase tracking-widest opacity-60 font-medium">Fecha</span>
-                          <span className="font-medium capitalize">{format(new Date(c.date || new Date()), "EEEE d MMM", { locale: es })}</span>
-                        </div>
-                        <div className="flex justify-between items-center border-b border-white/20 pb-2">
-                          <span className="text-xs uppercase tracking-widest opacity-60 font-medium">Hora</span>
-                          <span className="font-medium">{format(new Date(c.date || new Date()), "HH:mm")} ({c.duration} min)</span>
-                        </div>
-                        <div className="flex justify-between items-center pb-2">
-                          <span className="text-xs uppercase tracking-widest opacity-60 font-medium">Cupos</span>
-                          <span className={`font-medium ${isFull ? 'text-red-400 font-bold' : 'text-salvia'}`}>
-                            {isFull ? 'Agotado' : `${spotsAvailable} de ${c.capacity} disponibles`}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col gap-2 mt-6" onClick={(e) => e.stopPropagation()}>
-                      {isAdminOrInstructor ? (
-                        <>
-                          <div className="flex gap-2">
-                            <Button 
-                              onClick={() => {
-                                setClassToEdit(c);
-                                setIsFormOpen(true);
-                              }} 
-                              className="flex-1 rounded-full bg-salvia py-3 text-xs font-bold uppercase tracking-widest text-black hover:bg-salvia/90 transition-colors shadow-md animate-none cursor-pointer"
-                            >
-                              Editar
-                            </Button>
-                            <Button 
-                              onClick={() => {
-                                const { id, ...classWithoutId } = c;
-                                setClassToEdit(classWithoutId as any);
-                                setIsFormOpen(true);
-                              }} 
-                              className="flex-1 rounded-full bg-arena py-3 text-xs font-bold uppercase tracking-widest text-gris hover:bg-arena transition-colors border border-arena shadow-md cursor-pointer"
-                            >
-                              Duplicar
-                            </Button>
-                          </div>
-                          <Button 
-                            onClick={() => handleDeleteClass(c.id)} 
-                            className="w-full rounded-full bg-red-50/10 border border-red-500/30 py-3 text-xs font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition-colors shadow-md cursor-pointer"
-                          >
-                            Eliminar
-                          </Button>
-                        </>
-                      ) : (
-                        <div className="flex flex-col gap-2 w-full">
-                          <Button 
-                            disabled={bookingLoading === c.id || (isFull && !isAlreadyBooked) || (isInactive && !isAlreadyBooked)}
-                            onClick={() => handleBook(c)} 
-                            className={`w-full rounded-full py-6 text-xs font-bold uppercase tracking-widest text-white transition-colors cursor-pointer ${
-                              isAlreadyBooked 
-                                ? 'bg-terracota hover:bg-red-600 shadow-md' 
-                                : isInactive
-                                  ? 'bg-red-50 text-red-600 border border-red-200 cursor-not-allowed hover:bg-red-50'
-                                  : isFull 
-                                    ? 'bg-gris/40 cursor-not-allowed' 
-                                    : 'bg-gris text-black hover:bg-salvia'
-                            }`}
-                          >
-                            {bookingLoading === c.id 
-                              ? 'Procesando...' 
-                              : isAlreadyBooked 
-                                ? 'Cancelar Reserva' 
-                                : isInactive
-                                  ? 'Suscripción Inactiva'
-                                  : isFull 
-                                    ? 'Sin Cupos' 
-                                    : 'Reservar Espacio'}
-                          </Button>
-
-                          {/* "Añadir al Calendario" Dropdown Button for Booked Classes */}
-                          {isAlreadyBooked && (
-                            <div className="relative w-full">
-                              <Button
-                                type="button"
-                                onClick={() => setActiveDropdownId(activeDropdownId === c.id ? null : c.id)}
-                                className="w-full rounded-full bg-white/80 border border-arena py-3 text-xs font-bold uppercase tracking-widest text-gris hover:bg-white shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
-                              >
-                                📅 Añadir al Calendario
-                              </Button>
-
-                              {activeDropdownId === c.id && (
-                                <div className="absolute right-0 left-0 bottom-full mb-2 z-20 rounded-2xl bg-[#18181b] shadow-xl border border-white/20 p-2 space-y-1">
-                                  <a
-                                    href={getGoogleCalendarUrl(c)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={() => setActiveDropdownId(null)}
-                                    className="block w-full text-center px-4 py-2.5 text-xs font-semibold text-white/90 hover:bg-salvia/20 hover:text-salvia rounded-xl transition-colors cursor-pointer"
-                                  >
-                                    Google Calendar
-                                  </a>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      handleDownloadIcs(c);
-                                      setActiveDropdownId(null);
-                                    }}
-                                    className="block w-full text-center px-4 py-2.5 text-xs font-semibold text-white/90 hover:bg-salvia/20 hover:text-salvia rounded-xl transition-colors cursor-pointer"
-                                  >
-                                    Apple / Outlook / Android (.ics)
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            }) : (
-              <div className="col-span-full py-20 text-center text-gris/60">
-                <p className="text-xl">No hay clases programadas para los filtros seleccionados.</p>
-                <p className="mt-2 text-sm opacity-80">Prueba cambiando de día o quitando el filtro de mañana/tarde.</p>
-              </div>
-            )}
-          </div>
         )}
       </div>
     </div>
