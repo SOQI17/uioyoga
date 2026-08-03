@@ -339,8 +339,8 @@ export function Schedule() {
           setIsFormOpen(true);
         }}
         onDuplicateClass={(c) => {
-          const duplicate = { ...c, id: undefined } as any;
-          setClassToEdit(duplicate);
+          const { id, ...classWithoutId } = c;
+          setClassToEdit(classWithoutId as any);
           setIsFormOpen(true);
         }}
         onDeleteClass={handleDeleteClass}
@@ -594,8 +594,8 @@ export function Schedule() {
                             </Button>
                             <Button 
                               onClick={() => {
-                                const duplicate = { ...c, id: undefined } as any;
-                                setClassToEdit(duplicate);
+                                const { id, ...classWithoutId } = c;
+                                setClassToEdit(classWithoutId as any);
                                 setIsFormOpen(true);
                               }} 
                               className="flex-1 rounded-full bg-arena py-3 text-xs font-bold uppercase tracking-widest text-gris hover:bg-arena transition-colors border border-arena shadow-md cursor-pointer"

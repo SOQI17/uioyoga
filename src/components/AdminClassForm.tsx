@@ -40,11 +40,11 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
 
   useEffect(() => {
     if (classToEdit) {
-      setTitle(classToEdit.title);
-      setInstructor(classToEdit.instructor);
-      setLevel(classToEdit.level);
-      setCapacity(classToEdit.capacity);
-      setFeatured(classToEdit.featured || false);
+      setTitle(classToEdit.title || '');
+      setInstructor(classToEdit.instructor || '');
+      setLevel(classToEdit.level || 'Principiante');
+      setCapacity(classToEdit.capacity || 20);
+      setFeatured(Boolean(classToEdit.featured));
       setImage(classToEdit.image || '');
       
       // Format ISO string to datetime-local input format (YYYY-MM-DDTHH:MM)
@@ -56,7 +56,7 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
       } else {
         setDate('');
       }
-      setDuration(classToEdit.duration);
+      setDuration(classToEdit.duration || 60);
     } else {
       setTitle('');
       setInstructor('');
@@ -94,15 +94,15 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
     const isoDate = new Date(date).toISOString();
 
     const classData = {
-      title,
-      instructor,
-      level,
-      capacity: Number(capacity),
+      title: title || '',
+      instructor: instructor || '',
+      level: level || 'Principiante',
+      capacity: Number(capacity) || 20,
       date: isoDate,
-      duration: Number(duration),
-      featured,
-      image,
-      tenantId: getTenantId(),
+      duration: Number(duration) || 60,
+      featured: Boolean(featured),
+      image: image || '',
+      tenantId: getTenantId() || 'uioyoga',
     };
 
     try {
