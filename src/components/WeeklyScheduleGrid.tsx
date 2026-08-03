@@ -131,37 +131,31 @@ export function WeeklyScheduleGrid({
     });
   }, [classes, timeFilter]);
 
-  // Extract unique class types dynamically from active classes written by admin/instructor
+  // Extract unique class types dynamically ONLY from classes scheduled in the currently viewed week
   const legendItems = useMemo(() => {
     const map = new Map<string, { letter: string; title: string; style: ReturnType<typeof getClassStyle> }>();
     
-    if (classes.length > 0) {
-      classes.forEach(c => {
-        if (!c.title || !c.title.trim()) return;
-        const trimmedTitle = c.title.trim();
-        const key = trimmedTitle.toLowerCase();
-        if (!map.has(key)) {
-          const style = getClassStyle(trimmedTitle);
-          map.set(key, { letter: style.letter, title: trimmedTitle, style });
-        }
-      });
-    } else {
-      // Default reference fallback if no classes exist yet
-      const defaults = [
-        'Warrior Vinyasa',
-        'Dancer Vinyasa',
-        'Animal Vinyasa',
-        'Espejo del Sabio',
-        'Mente de Buda'
-      ];
-      defaults.forEach(title => {
-        const style = getClassStyle(title);
-        map.set(title.toLowerCase(), { letter: style.letter, title, style });
-      });
-    }
+    // Filter classes to those falling in the currently displayed week
+    const weekClasses = classes.filter(c => {
+      if (!c.date) return false;
+      const d = new Date(c.date);
+      return weekDays.some(day => isSameDay(d, day));
+    });
+
+    const targetClasses = weekClasses.length > 0 ? weekClasses : classes;
+
+    targetClasses.forEach(c => {
+      if (!c.title || !c.title.trim()) return;
+      const trimmedTitle = c.title.trim();
+      const key = trimmedTitle.toLowerCase();
+      if (!map.has(key)) {
+        const style = getClassStyle(trimmedTitle);
+        map.set(key, { letter: style.letter, title: trimmedTitle, style });
+      }
+    });
 
     return Array.from(map.values());
-  }, [classes]);
+  }, [classes, weekDays]);
 
   // Helper to find classes for a specific day and time slot
   const getClassesForSlot = (day: Date, slotTimeStr: string) => {
@@ -304,23 +298,29 @@ export function WeeklyScheduleGrid({
         )}
       </div>
 
-      {/* LEGEND BAR (Matching Image 2 Reference) */}
+      {/* LEGEND BAR */}
       <div className="bg-[#121214] p-4 sm:p-5 rounded-3xl border border-white/10 shadow-lg">
         <span className="text-[10px] font-bold uppercase tracking-widest text-white/50 block mb-3">
           Leyenda de Clases:
         </span>
-        <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-2.5">
-          {legendItems.map((item) => (
-            <div key={item.title} className="flex items-center gap-2">
-              <span className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg text-xs font-black font-serif border ${item.style.border} ${item.style.badgeBg} shadow-sm`}>
-                {item.letter}
-              </span>
-              <span className="text-xs font-medium text-white/90">
-                :{item.title}
-              </span>
-            </div>
-          ))}
-        </div>
+        {legendItems.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-2.5">
+            {legendItems.map((item) => (
+              <div key={item.title} className="flex items-center gap-2">
+                <span className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg text-xs font-black font-serif border ${item.style.border} ${item.style.badgeBg} shadow-sm`}>
+                  {item.letter}
+                </span>
+                <span className="text-xs font-medium text-white/90">
+                  :{item.title}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-white/40 italic">
+            No hay clases registradas en esta semana.
+          </p>
+        )}
       </div>
 
       {/* ADMIN HELPER BANNER */}
