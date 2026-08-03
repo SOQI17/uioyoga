@@ -86,8 +86,8 @@ function RadarChart({ scores }: { scores: { flexibility: number; strength: numbe
   }).join(' ');
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 bg-white/40 rounded-3xl border border-arena/20 shadow-inner w-full">
-      <svg viewBox="0 0 200 200" className="w-full max-w-[190px] h-auto">
+    <div className="flex flex-col items-center justify-center p-5 bg-[#141416] rounded-3xl border border-white/15 shadow-2xl w-full">
+      <svg viewBox="0 0 200 200" className="w-full max-w-[210px] h-auto overflow-visible">
         {/* Grids */}
         {levels.map((level) => {
           const points = categories.map((cat, idx) => {
@@ -99,10 +99,10 @@ function RadarChart({ scores }: { scores: { flexibility: number; strength: numbe
               key={level}
               points={points}
               fill="none"
-              stroke="var(--color-salvia, #8b9c86)"
-              strokeWidth="0.5"
+              stroke="#ffffff"
+              strokeWidth="0.75"
               strokeDasharray={level === 10 ? '0' : '2,2'}
-              className="opacity-30"
+              className="opacity-25"
             />
           );
         })}
@@ -117,9 +117,9 @@ function RadarChart({ scores }: { scores: { flexibility: number; strength: numbe
               y1={CY}
               x2={outer.x}
               y2={outer.y}
-              stroke="var(--color-salvia, #8b9c86)"
-              strokeWidth="0.5"
-              className="opacity-30"
+              stroke="#ffffff"
+              strokeWidth="0.75"
+              className="opacity-25"
             />
           );
         })}
@@ -128,10 +128,11 @@ function RadarChart({ scores }: { scores: { flexibility: number; strength: numbe
         {dataPoints && (
           <polygon
             points={dataPoints}
-            fill="var(--color-salvia, #8b9c86)"
-            stroke="var(--color-salvia, #8b9c86)"
-            strokeWidth="1.5"
-            className="fill-salvia/30 stroke-salvia drop-shadow-sm"
+            fill="#9ca688"
+            fillOpacity="0.35"
+            stroke="#9ca688"
+            strokeWidth="2"
+            style={{ filter: 'drop-shadow(0px 0px 6px rgba(156, 166, 136, 0.6))' }}
           />
         )}
 
@@ -144,22 +145,22 @@ function RadarChart({ scores }: { scores: { flexibility: number; strength: numbe
               key={cat.key}
               cx={x}
               cy={y}
-              r="2"
-              fill="var(--color-terracota, #c08575)"
-              stroke="white"
-              strokeWidth="0.5"
+              r="3"
+              fill="#c9856d"
+              stroke="#ffffff"
+              strokeWidth="1"
             />
           );
         })}
 
         {/* Text Labels */}
         {categories.map((cat, idx) => {
-          const outer = getCoordinates(idx, 10, 1.25);
+          const outer = getCoordinates(idx, 10, 1.3);
           let textAnchor: 'middle' | 'start' | 'end' = 'middle';
           let dy = '0.35em';
           
-          if (cat.angle === 0) dy = '-0.5em';
-          else if (cat.angle === 180) dy = '1em';
+          if (cat.angle === 0) dy = '-0.6em';
+          else if (cat.angle === 180) dy = '1.1em';
           else if (cat.angle > 0 && cat.angle < 180) textAnchor = 'start';
           else if (cat.angle > 180 && cat.angle < 360) textAnchor = 'end';
 
@@ -170,7 +171,7 @@ function RadarChart({ scores }: { scores: { flexibility: number; strength: numbe
               y={outer.y}
               textAnchor={textAnchor}
               dy={dy}
-              className="text-[6.5px] font-bold fill-gris/85 uppercase tracking-wider"
+              className="text-[7.5px] font-black fill-white uppercase tracking-wider drop-shadow-md"
             >
               {cat.name}
             </text>
@@ -183,14 +184,14 @@ function RadarChart({ scores }: { scores: { flexibility: number; strength: numbe
 
 function ProgressLineChart({ logs }: { logs: any[] }) {
   if (logs.length < 2) {
-    return <p className="text-center text-xs text-gris/40 py-8 italic bg-white/30 rounded-2xl border border-arena/10">Se necesitan al menos 2 valoraciones para trazar tu línea de progreso.</p>;
+    return <p className="text-center text-xs text-white/50 py-8 italic bg-[#141416] rounded-2xl border border-white/10">Se necesitan al menos 2 valoraciones para trazar tu línea de progreso.</p>;
   }
 
   const width = 300;
-  const height = 120;
+  const height = 130;
   const paddingLeft = 30;
   const paddingRight = 20;
-  const paddingTop = 15;
+  const paddingTop = 20;
   const paddingBottom = 25;
 
   const chartWidth = width - paddingLeft - paddingRight;
@@ -209,15 +210,15 @@ function ProgressLineChart({ logs }: { logs: any[] }) {
   }, '');
 
   return (
-    <div className="p-4 bg-white/40 rounded-3xl border border-arena/20 shadow-inner w-full">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
+    <div className="p-4 bg-[#141416] rounded-3xl border border-white/15 shadow-2xl w-full">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
         {/* Grid lines */}
         {[1, 5, 10].map((val) => {
           const y = paddingTop + chartHeight - ((val - 1) / 9) * chartHeight;
           return (
-            <g key={val} className="opacity-25">
-              <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="var(--color-gris, #433e3f)" strokeWidth="0.5" strokeDasharray="2,2" />
-              <text x={10} y={y + 2.5} className="text-[6.5px] font-bold fill-gris">{val}</text>
+            <g key={val} className="opacity-30">
+              <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#ffffff" strokeWidth="0.75" strokeDasharray="2,2" />
+              <text x={10} y={y + 2.5} className="text-[7px] font-bold fill-white/70">{val}</text>
             </g>
           );
         })}
@@ -226,8 +227,9 @@ function ProgressLineChart({ logs }: { logs: any[] }) {
         <path
           d={pathD}
           fill="none"
-          stroke="var(--color-salvia, #8b9c86)"
-          strokeWidth="1.75"
+          stroke="#9ca688"
+          strokeWidth="2.5"
+          style={{ filter: 'drop-shadow(0px 0px 5px rgba(156, 166, 136, 0.5))' }}
         />
 
         {/* Data points */}
@@ -236,15 +238,15 @@ function ProgressLineChart({ logs }: { logs: any[] }) {
             <circle
               cx={p.x}
               cy={p.y}
-              r="2.5"
-              fill="var(--color-terracota, #c08575)"
-              stroke="white"
-              strokeWidth="0.5"
+              r="3.5"
+              fill="#c9856d"
+              stroke="#ffffff"
+              strokeWidth="1"
             />
-            <text x={p.x} y={p.y - 5} textAnchor="middle" className="text-[5.5px] font-bold fill-gris">
+            <text x={p.x} y={p.y - 6} textAnchor="middle" className="text-[6.5px] font-black fill-white drop-shadow-sm">
               {p.avg.toFixed(1)}
             </text>
-            <text x={p.x} y={height - 8} textAnchor="middle" className="text-[5.5px] font-semibold fill-gris/50">
+            <text x={p.x} y={height - 5} textAnchor="middle" className="text-[6.5px] font-bold fill-white/60">
               {p.date}
             </text>
           </g>
@@ -1253,8 +1255,8 @@ export function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setExpedienteTab('info')}
-                  className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${
-                    expedienteTab === 'info' ? 'bg-salvia text-white shadow-sm' : 'bg-white/40 text-gris/70 hover:bg-white/60'
+                  className={`px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    expedienteTab === 'info' ? 'bg-salvia text-black shadow-md' : 'bg-black/30 text-white/70 hover:bg-white/10 border border-white/10'
                   }`}
                 >
                   Membresía & Caja
@@ -1262,8 +1264,8 @@ export function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setExpedienteTab('progress')}
-                  className={`px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${
-                    expedienteTab === 'progress' ? 'bg-salvia text-white shadow-sm' : 'bg-white/40 text-gris/70 hover:bg-white/60'
+                  className={`px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    expedienteTab === 'progress' ? 'bg-salvia text-black shadow-md' : 'bg-black/30 text-white/70 hover:bg-white/10 border border-white/10'
                   }`}
                 >
                   Progreso & Valoración
@@ -1346,31 +1348,41 @@ export function Dashboard() {
                     ) : progressLogs.length > 0 ? (
                       <>
                         <RadarChart scores={progressLogs[progressLogs.length - 1].scores} />
-                        <div className="mt-4 bg-white/70 p-4 rounded-[24px] border border-white shadow-inner grid grid-cols-2 gap-2 text-[9px] text-gris font-bold uppercase tracking-wider">
-                          <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
-                            <span>Flexibilidad</span>
-                            <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.flexibility} / 10</span>
+                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold uppercase tracking-wider">
+                          <div className="flex justify-between items-center bg-[#18181b] px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-sm">
+                            <span className="text-white/80 text-[10px]">Flexibilidad</span>
+                            <span className="text-salvia font-serif text-sm font-black bg-salvia/15 px-2 py-0.5 rounded-lg border border-salvia/30">
+                              {progressLogs[progressLogs.length - 1].scores.flexibility} / 10
+                            </span>
                           </div>
-                          <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
-                            <span>Fuerza Física</span>
-                            <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.strength} / 10</span>
+                          <div className="flex justify-between items-center bg-[#18181b] px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-sm">
+                            <span className="text-white/80 text-[10px]">Fuerza Física</span>
+                            <span className="text-amber-300 font-serif text-sm font-black bg-amber-500/15 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                              {progressLogs[progressLogs.length - 1].scores.strength} / 10
+                            </span>
                           </div>
-                          <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
-                            <span>Equilibrio</span>
-                            <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.balance} / 10</span>
+                          <div className="flex justify-between items-center bg-[#18181b] px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-sm">
+                            <span className="text-white/80 text-[10px]">Equilibrio</span>
+                            <span className="text-indigo-300 font-serif text-sm font-black bg-indigo-500/15 px-2 py-0.5 rounded-lg border border-indigo-500/30">
+                              {progressLogs[progressLogs.length - 1].scores.balance} / 10
+                            </span>
                           </div>
-                          <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
-                            <span>Resistencia</span>
-                            <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.endurance} / 10</span>
+                          <div className="flex justify-between items-center bg-[#18181b] px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-sm">
+                            <span className="text-white/80 text-[10px]">Resistencia</span>
+                            <span className="text-terracota font-serif text-sm font-black bg-terracota/15 px-2 py-0.5 rounded-lg border border-terracota/30">
+                              {progressLogs[progressLogs.length - 1].scores.endurance} / 10
+                            </span>
                           </div>
-                          <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10 col-span-2">
-                            <span>Enfoque / Paz Mental</span>
-                            <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.mindfulness} / 10</span>
+                          <div className="flex justify-between items-center bg-[#18181b] px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-sm col-span-2">
+                            <span className="text-white/80 text-[10px]">Enfoque / Paz Mental</span>
+                            <span className="text-cyan-300 font-serif text-sm font-black bg-cyan-500/15 px-2 py-0.5 rounded-lg border border-cyan-500/30">
+                              {progressLogs[progressLogs.length - 1].scores.mindfulness} / 10
+                            </span>
                           </div>
                         </div>
                       </>
                     ) : (
-                      <div className="text-center py-10 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">
+                      <div className="text-center py-10 text-xs text-white/50 italic bg-[#141416] rounded-2xl border border-white/10">
                         Sin valoraciones corporales aún.
                       </div>
                     )}
@@ -1386,49 +1398,57 @@ export function Dashboard() {
                   <div>
                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80 mb-2">Historial de Evaluaciones</h4>
                     {progressLogs.length > 0 ? (
-                      <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                      <div className="space-y-3 max-h-[240px] overflow-y-auto pr-1">
                         {[...progressLogs].reverse().map((log) => (
-                          <div key={log.id} className="bg-white/60 p-4 rounded-2xl border border-white text-xs space-y-2 shadow-sm">
-                            <div className="flex justify-between items-center font-bold text-gris">
+                          <div key={log.id} className="bg-[#18181b] p-4 rounded-2xl border border-white/10 text-xs space-y-2.5 shadow-md">
+                            <div className="flex justify-between items-center font-bold text-white">
                               <span>{format(new Date(log.date), 'dd/MM/yyyy')}</span>
-                              <span className="text-[9px] text-salvia bg-salvia/10 px-2 py-0.5 rounded-full">Doc: {log.instructorName}</span>
+                              <span className="text-[10px] font-semibold text-salvia bg-salvia/15 border border-salvia/30 px-2.5 py-0.5 rounded-full">
+                                Doc: {log.instructorName}
+                              </span>
                             </div>
-                            {log.notes && <p className="text-gris/75 italic leading-relaxed">"{log.notes}"</p>}
-                            <div className="grid grid-cols-5 gap-1 text-[8px] font-bold text-gris/60 text-center uppercase tracking-tighter pt-2 border-t border-arena/25">
-                              <div>Flex: {log.scores.flexibility}</div>
-                              <div>Fuerza: {log.scores.strength}</div>
-                              <div>Equil: {log.scores.balance}</div>
-                              <div>Resis: {log.scores.endurance}</div>
-                              <div>Enfoq: {log.scores.mindfulness}</div>
+                            {log.notes && (
+                              <p className="text-white/85 italic leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5">
+                                "{log.notes}"
+                              </p>
+                            )}
+                            <div className="grid grid-cols-5 gap-1 text-[9px] font-bold text-white/70 text-center uppercase tracking-wider pt-2 border-t border-white/10">
+                              <div className="bg-salvia/10 p-1 rounded-lg border border-salvia/20 text-salvia">Flex: {log.scores.flexibility}</div>
+                              <div className="bg-amber-500/10 p-1 rounded-lg border border-amber-500/20 text-amber-300">Fuerza: {log.scores.strength}</div>
+                              <div className="bg-indigo-500/10 p-1 rounded-lg border border-indigo-500/20 text-indigo-300">Equil: {log.scores.balance}</div>
+                              <div className="bg-terracota/10 p-1 rounded-lg border border-terracota/20 text-terracota">Resis: {log.scores.endurance}</div>
+                              <div className="bg-cyan-500/10 p-1 rounded-lg border border-cyan-500/20 text-cyan-300">Enfoq: {log.scores.mindfulness}</div>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-center py-6 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">No hay comentarios ni valoraciones previas.</p>
+                      <p className="text-center py-6 text-xs text-white/40 italic bg-[#141416] rounded-2xl border border-white/10">No hay comentarios ni valoraciones previas.</p>
                     )}
                   </div>
                 </div>
 
                 {/* Columna Derecha: Formulario para añadir nueva valoración */}
-                <div className="bg-white/50 p-5 rounded-2xl border border-white/60 shadow-inner h-fit space-y-4">
+                <div className="bg-[#141416] p-5 rounded-3xl border border-white/15 shadow-xl h-fit space-y-4">
                   <div>
-                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Registrar Valoración</h4>
-                    <p className="text-[10px] text-gris/60 leading-relaxed mt-0.5">Evalúa el rendimiento físico e introspectivo de la práctica del alumno de 1 a 10.</p>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-terracota">Registrar Valoración</h4>
+                    <p className="text-[11px] text-white/70 leading-relaxed mt-1">Evalúa el rendimiento físico e introspectivo de la práctica del alumno de 1 a 10.</p>
                   </div>
 
                   <form onSubmit={handleSaveProgressLog} className="space-y-4">
                     {[
-                      { label: 'Flexibilidad', state: flexibility, set: setFlexibility },
-                      { label: 'Fuerza Física', state: strength, set: setStrength },
-                      { label: 'Equilibrio / Postura', state: balance, set: setBalance },
-                      { label: 'Resistencia / Respiración', state: endurance, set: setEndurance },
-                      { label: 'Enfoque / Paz Mental', state: mindfulness, set: setMindfulness },
+                      { label: 'Flexibilidad', state: flexibility, set: setFlexibility, color: 'text-salvia' },
+                      { label: 'Fuerza Física', state: strength, set: setStrength, color: 'text-amber-300' },
+                      { label: 'Equilibrio / Postura', state: balance, set: setBalance, color: 'text-indigo-300' },
+                      { label: 'Resistencia / Respiración', state: endurance, set: setEndurance, color: 'text-terracota' },
+                      { label: 'Enfoque / Paz Mental', state: mindfulness, set: setMindfulness, color: 'text-cyan-300' },
                     ].map((item) => (
-                      <div key={item.label} className="space-y-1">
-                        <div className="flex justify-between font-bold text-[9px] uppercase tracking-wider text-gris">
+                      <div key={item.label} className="space-y-1.5">
+                        <div className="flex justify-between items-center font-bold text-xs uppercase tracking-wider text-white">
                           <span>{item.label}</span>
-                          <span className="text-terracota">{item.state} / 10</span>
+                          <span className={`${item.color} font-black font-serif text-sm bg-white/5 px-2.5 py-0.5 rounded-lg border border-white/10`}>
+                            {item.state} / 10
+                          </span>
                         </div>
                         <input
                           type="range"
@@ -1436,27 +1456,27 @@ export function Dashboard() {
                           max="10"
                           value={item.state}
                           onChange={(e) => item.set(Number(e.target.value))}
-                          className="w-full accent-salvia cursor-pointer h-1 bg-arena/70 rounded-lg appearance-none"
+                          className="w-full accent-salvia cursor-pointer h-2 bg-black/60 rounded-lg border border-white/10 appearance-none"
                         />
                       </div>
                     ))}
 
-                    <div className="space-y-1">
-                      <Label htmlFor="progressNotesInput" className="text-[9px] font-bold uppercase tracking-widest text-gris opacity-70">Instrucciones y Observaciones</Label>
+                    <div className="space-y-1.5 pt-2">
+                      <Label htmlFor="progressNotesInput" className="text-xs font-bold uppercase tracking-widest text-white/80">Instrucciones y Observaciones</Label>
                       <textarea
                         id="progressNotesInput"
                         rows={3}
                         placeholder="Escribe recomendaciones, posturas a practicar o felicitaciones..."
                         value={progressNotes}
                         onChange={(e) => setProgressNotes(e.target.value)}
-                        className="flex w-full rounded-xl border-none bg-white/70 px-3 py-2 text-xs shadow-inner focus:outline-none focus:ring-1 focus:ring-salvia"
+                        className="flex w-full rounded-2xl border border-white/20 bg-[#18181b] px-3.5 py-2.5 text-xs text-white placeholder-white/40 focus:outline-none focus:border-salvia focus:ring-1 focus:ring-salvia"
                       />
                     </div>
 
                     <Button
                       type="submit"
                       disabled={savingProgress}
-                      className="w-full rounded-full bg-salvia py-3.5 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-salvia/90 shadow-md cursor-pointer"
+                      className="w-full rounded-full bg-salvia py-3.5 text-xs font-black uppercase tracking-widest text-black hover:bg-salvia/90 shadow-lg cursor-pointer transition-all"
                     >
                       {savingProgress ? 'Guardando Valoración...' : 'Registrar Valoración'}
                     </Button>
@@ -1503,31 +1523,41 @@ export function Dashboard() {
                   ) : progressLogs.length > 0 ? (
                     <>
                       <RadarChart scores={progressLogs[progressLogs.length - 1].scores} />
-                      <div className="mt-4 bg-white/70 p-4 rounded-[24px] border border-white shadow-inner grid grid-cols-2 gap-2 text-[9px] text-gris font-bold uppercase tracking-wider">
-                        <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
-                          <span>Flexibilidad</span>
-                          <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.flexibility} / 10</span>
+                      <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-bold uppercase tracking-wider">
+                        <div className="flex justify-between items-center bg-[#18181b] px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-sm">
+                          <span className="text-white/80 text-[10px]">Flexibilidad</span>
+                          <span className="text-salvia font-serif text-sm font-black bg-salvia/15 px-2 py-0.5 rounded-lg border border-salvia/30">
+                            {progressLogs[progressLogs.length - 1].scores.flexibility} / 10
+                          </span>
                         </div>
-                        <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
-                          <span>Fuerza Física</span>
-                          <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.strength} / 10</span>
+                        <div className="flex justify-between items-center bg-[#18181b] px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-sm">
+                          <span className="text-white/80 text-[10px]">Fuerza Física</span>
+                          <span className="text-amber-300 font-serif text-sm font-black bg-amber-500/15 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                            {progressLogs[progressLogs.length - 1].scores.strength} / 10
+                          </span>
                         </div>
-                        <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
-                          <span>Equilibrio</span>
-                          <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.balance} / 10</span>
+                        <div className="flex justify-between items-center bg-[#18181b] px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-sm">
+                          <span className="text-white/80 text-[10px]">Equilibrio</span>
+                          <span className="text-indigo-300 font-serif text-sm font-black bg-indigo-500/15 px-2 py-0.5 rounded-lg border border-indigo-500/30">
+                            {progressLogs[progressLogs.length - 1].scores.balance} / 10
+                          </span>
                         </div>
-                        <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10">
-                          <span>Resistencia</span>
-                          <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.endurance} / 10</span>
+                        <div className="flex justify-between items-center bg-[#18181b] px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-sm">
+                          <span className="text-white/80 text-[10px]">Resistencia</span>
+                          <span className="text-terracota font-serif text-sm font-black bg-terracota/15 px-2 py-0.5 rounded-lg border border-terracota/30">
+                            {progressLogs[progressLogs.length - 1].scores.endurance} / 10
+                          </span>
                         </div>
-                        <div className="flex justify-between items-center bg-arena/30 px-3 py-2 rounded-xl border border-arena/10 col-span-2">
-                          <span>Enfoque / Paz Mental</span>
-                          <span className="text-salvia font-serif text-xs font-black">{progressLogs[progressLogs.length - 1].scores.mindfulness} / 10</span>
+                        <div className="flex justify-between items-center bg-[#18181b] px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-sm col-span-2">
+                          <span className="text-white/80 text-[10px]">Enfoque / Paz Mental</span>
+                          <span className="text-cyan-300 font-serif text-sm font-black bg-cyan-500/15 px-2 py-0.5 rounded-lg border border-cyan-500/30">
+                            {progressLogs[progressLogs.length - 1].scores.mindfulness} / 10
+                          </span>
                         </div>
                       </div>
                     </>
                   ) : (
-                    <div className="text-center py-10 text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white">
+                    <div className="text-center py-10 text-xs text-white/50 italic bg-[#141416] rounded-2xl border border-white/10">
                       Aún no se han registrado valoraciones corporales de tus instructores. ¡Pronto verás tu progreso aquí!
                     </div>
                   )}
@@ -1547,24 +1577,30 @@ export function Dashboard() {
                 {progressLogs.length > 0 ? (
                   <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
                     {[...progressLogs].reverse().map((log) => (
-                      <div key={log.id} className="bg-white/60 p-4 rounded-2xl border border-white text-xs space-y-2 shadow-sm">
-                        <div className="flex justify-between items-center font-bold text-gris">
+                      <div key={log.id} className="bg-[#18181b] p-4 rounded-2xl border border-white/10 text-xs space-y-2.5 shadow-md">
+                        <div className="flex justify-between items-center font-bold text-white">
                           <span>{format(new Date(log.date), 'dd/MM/yyyy')}</span>
-                          <span className="text-[9px] text-salvia bg-salvia/10 px-2 py-0.5 rounded-full">Prof: {log.instructorName}</span>
+                          <span className="text-[10px] font-semibold text-salvia bg-salvia/15 border border-salvia/30 px-2.5 py-0.5 rounded-full">
+                            Prof: {log.instructorName}
+                          </span>
                         </div>
-                        {log.notes && <p className="text-gris/75 italic leading-relaxed">"{log.notes}"</p>}
-                        <div className="grid grid-cols-5 gap-1 text-[8px] font-bold text-gris/60 text-center uppercase tracking-tighter pt-2 border-t border-arena/25">
-                          <div>Flex: {log.scores.flexibility}</div>
-                          <div>Fuerza: {log.scores.strength}</div>
-                          <div>Equil: {log.scores.balance}</div>
-                          <div>Resis: {log.scores.endurance}</div>
-                          <div>Enfoq: {log.scores.mindfulness}</div>
+                        {log.notes && (
+                          <p className="text-white/85 italic leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5">
+                            "{log.notes}"
+                          </p>
+                        )}
+                        <div className="grid grid-cols-5 gap-1 text-[9px] font-bold text-white/70 text-center uppercase tracking-wider pt-2 border-t border-white/10">
+                          <div className="bg-salvia/10 p-1 rounded-lg border border-salvia/20 text-salvia">Flex: {log.scores.flexibility}</div>
+                          <div className="bg-amber-500/10 p-1 rounded-lg border border-amber-500/20 text-amber-300">Fuerza: {log.scores.strength}</div>
+                          <div className="bg-indigo-500/10 p-1 rounded-lg border border-indigo-500/20 text-indigo-300">Equil: {log.scores.balance}</div>
+                          <div className="bg-terracota/10 p-1 rounded-lg border border-terracota/20 text-terracota">Resis: {log.scores.endurance}</div>
+                          <div className="bg-cyan-500/10 p-1 rounded-lg border border-cyan-500/20 text-cyan-300">Enfoq: {log.scores.mindfulness}</div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="p-5 text-center text-xs text-gris/40 italic bg-white/40 rounded-2xl border border-white leading-relaxed">
+                  <div className="p-5 text-center text-xs text-white/50 italic bg-[#141416] rounded-2xl border border-white/10 leading-relaxed">
                     Tus profesores anotarán sus observaciones y recomendaciones aquí a medida que asistas a más clases.
                   </div>
                 )}
