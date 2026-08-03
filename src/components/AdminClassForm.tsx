@@ -153,14 +153,13 @@ export function AdminClassForm({ classToEdit, onSuccess, onCancel }: AdminClassF
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="instructor" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Instructor(a)</Label>
+          <Label htmlFor="instructor" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Instructor(a) (Opcional)</Label>
           <Input
             id="instructor"
-            required
             value={instructor}
             onChange={(e) => setInstructor(e.target.value)}
             className="rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia"
-            placeholder="Ej. Alexis, Sofía"
+            placeholder="Ej. Alexis, Sofía (Opcional)"
           />
         </div>
 

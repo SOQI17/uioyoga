@@ -555,7 +555,11 @@ export function Schedule() {
                       </div>
                       
                       <h3 className="font-serif text-2xl text-gris mt-6 mb-1 font-medium drop-shadow-md group-hover:text-salvia transition-colors">{c.title}</h3>
-                      <p className="text-xs text-gris/70 italic mb-6 drop-shadow-sm">Guiado por {c.instructor}</p>
+                      {c.instructor ? (
+                        <p className="text-xs text-gris/70 italic mb-6 drop-shadow-sm">Guiado por {c.instructor}</p>
+                      ) : (
+                        <div className="mb-6"></div>
+                      )}
                       
                       <div className="space-y-3 text-sm text-gris/85 border-t border-white/30 pt-4 drop-shadow-sm">
                         <div className="flex justify-between items-center border-b border-white/20 pb-2">

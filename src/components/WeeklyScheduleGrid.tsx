@@ -415,7 +415,7 @@ export function WeeklyScheduleGrid({
                                     {c.title}
                                   </h4>
                                   <p className="text-[10px] text-white/70 italic mt-0.5">
-                                    {c.instructor} • {c.duration} min
+                                    {c.instructor ? `${c.instructor} • ` : ''}{c.duration} min
                                   </p>
                                 </div>
                               </div>
@@ -576,9 +576,11 @@ export function WeeklyScheduleGrid({
                                       <h4 className="text-xs font-bold text-white truncate group-hover:text-salvia transition-colors">
                                         {c.title}
                                       </h4>
-                                      <p className="text-[10px] text-white/70 italic truncate">
-                                        {c.instructor}
-                                      </p>
+                                      {c.instructor && (
+                                        <p className="text-[10px] text-white/70 italic truncate">
+                                          {c.instructor}
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
 

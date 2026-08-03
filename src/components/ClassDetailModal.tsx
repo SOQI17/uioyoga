@@ -102,10 +102,12 @@ export function ClassDetailModal({
                 <h2 className="font-serif text-3xl font-medium text-white drop-shadow-md leading-tight">
                   {classItem.title}
                 </h2>
-                <p className="text-xs text-white/80 italic flex items-center gap-1.5 mt-1">
-                  <User className="w-3.5 h-3.5 text-salvia" />
-                  Guiado por <span className="font-semibold text-white">{classItem.instructor}</span>
-                </p>
+                {classItem.instructor && (
+                  <p className="text-xs text-white/80 italic flex items-center gap-1.5 mt-1">
+                    <User className="w-3.5 h-3.5 text-salvia" />
+                    Guiado por <span className="font-semibold text-white">{classItem.instructor}</span>
+                  </p>
+                )}
               </div>
             </div>
           </div>
