@@ -21,7 +21,8 @@ const DEFAULT_SETTINGS = {
   googleReviewsUrl: 'https://maps.app.goo.gl/E7wfaMmPs2viQNSo7',
   instagramUrl: 'https://instagram.com/uioyoga',
   facebookUrl: 'https://facebook.com/uioyoga',
-  whatsappNumber: '+593999999999'
+  whatsappNumber: '+593999999999',
+  showTeaserCircle: true
 };
 
 interface AdminHomeSettingsProps {
@@ -45,6 +46,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
   const [instagramUrl, setInstagramUrl] = useState('');
   const [facebookUrl, setFacebookUrl] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [showTeaserCircle, setShowTeaserCircle] = useState(true);
 
   const [heroUploading, setHeroUploading] = useState(false);
   const [philosophyUploading, setPhilosophyUploading] = useState(false);
@@ -78,6 +80,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
           setInstagramUrl(data.instagramUrl || DEFAULT_SETTINGS.instagramUrl);
           setFacebookUrl(data.facebookUrl || DEFAULT_SETTINGS.facebookUrl);
           setWhatsappNumber(data.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber);
+          setShowTeaserCircle(data.showTeaserCircle !== false);
         } else {
           setHeroTitle(DEFAULT_SETTINGS.heroTitle);
           setHeroSubtitle(DEFAULT_SETTINGS.heroSubtitle);
@@ -94,6 +97,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
           setInstagramUrl(DEFAULT_SETTINGS.instagramUrl);
           setFacebookUrl(DEFAULT_SETTINGS.facebookUrl);
           setWhatsappNumber(DEFAULT_SETTINGS.whatsappNumber);
+          setShowTeaserCircle(true);
         }
       } catch (err) {
         console.error("Error loading home settings:", err);
@@ -205,6 +209,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
       instagramUrl,
       facebookUrl,
       whatsappNumber,
+      showTeaserCircle,
       updatedAt: new Date().toISOString()
     };
 
@@ -297,30 +302,55 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
             </div>
           </div>
 
-          {/* TEASER IMAGE (CENTRAL ORB) Uploader */}
-          <div className="space-y-1">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Foto de Reemplazo para el Círculo Central ("UIO Room")</Label>
-            <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/50 p-4 rounded-2xl border border-arena/30">
-              {teaserImage && (
-                <img src={teaserImage} alt="Teaser Preview" className="w-16 h-16 rounded-full object-cover shadow-sm border border-arena bg-arena" />
-              )}
-              <div className="flex-1 w-full">
-                <input
-                  id="teaser-image-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleTeaserImageUpload}
-                  disabled={teaserUploading}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="teaser-image-upload"
-                  className="flex items-center justify-center w-full rounded-full border border-salvia/30 text-salvia bg-transparent px-4 py-2.5 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-salvia/10 select-none transition-colors text-center border-dashed border-2"
-                >
-                  {teaserUploading ? 'Subiendo...' : teaserImage ? 'Cambiar Foto del Círculo' : 'Subir Foto para el Círculo'}
-                </label>
+          {/* TEASER IMAGE (CENTRAL ORB) TOGGLE & Uploader */}
+          <div className="space-y-3 pt-2 border-t border-arena/30">
+            <div className="flex items-center justify-between bg-white/70 p-4 rounded-2xl border border-arena/30">
+              <div className="space-y-0.5">
+                <Label htmlFor="showTeaserCircle" className="text-xs font-bold uppercase tracking-wider text-gris">Mostrar UIO Room (Círculo Central)</Label>
+                <p className="text-[10px] text-gris/60">Activa o desactiva con un solo clic la insignia circular superpuesta en la imagen principal.</p>
               </div>
+              <button
+                type="button"
+                id="showTeaserCircle"
+                onClick={() => setShowTeaserCircle(!showTeaserCircle)}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                  showTeaserCircle ? 'bg-salvia' : 'bg-gris/30'
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                    showTeaserCircle ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
+
+            {showTeaserCircle && (
+              <div className="space-y-1">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Foto de Reemplazo para el Círculo Central ("UIO Room")</Label>
+                <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/50 p-4 rounded-2xl border border-arena/30">
+                  {teaserImage && (
+                    <img src={teaserImage} alt="Teaser Preview" className="w-16 h-16 rounded-full object-cover shadow-sm border border-arena bg-arena" />
+                  )}
+                  <div className="flex-1 w-full">
+                    <input
+                      id="teaser-image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleTeaserImageUpload}
+                      disabled={teaserUploading}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="teaser-image-upload"
+                      className="flex items-center justify-center w-full rounded-full border border-salvia/30 text-salvia bg-transparent px-4 py-2.5 text-xs font-bold uppercase tracking-widest cursor-pointer hover:bg-salvia/10 select-none transition-colors text-center border-dashed border-2"
+                    >
+                      {teaserUploading ? 'Subiendo...' : teaserImage ? 'Cambiar Foto del Círculo' : 'Subir Foto para el Círculo'}
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

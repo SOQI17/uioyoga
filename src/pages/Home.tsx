@@ -257,7 +257,7 @@ export function Home() {
             />
             <div className="absolute inset-0 bg-gradient-to-br from-black/20 to-transparent"></div>
             
-            {plan === 'enterprise' && (
+            {plan === 'enterprise' && settings.showTeaserCircle !== false && (
               <>
                 {/* 3D Experience Teaser inside the image container */}
                 <div className="absolute inset-0 flex items-center justify-center">

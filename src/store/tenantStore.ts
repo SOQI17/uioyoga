@@ -29,6 +29,7 @@ export interface StudioSettings {
   instagramUrl?: string;
   facebookUrl?: string;
   whatsappNumber?: string;
+  showTeaserCircle?: boolean;
 }
 
 interface TenantState {
