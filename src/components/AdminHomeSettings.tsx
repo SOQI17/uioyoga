@@ -17,7 +17,11 @@ const DEFAULT_SETTINGS = {
   splashTitle: 'UIO YOGA',
   splashSubtitle: 'Vive la experiencia',
   splashImage: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1000&auto=format&fit=crop',
-  splashLogo: ''
+  splashLogo: '',
+  googleReviewsUrl: 'https://maps.app.goo.gl/E7wfaMmPs2viQNSo7',
+  instagramUrl: 'https://instagram.com/uioyoga',
+  facebookUrl: 'https://facebook.com/uioyoga',
+  whatsappNumber: '+593999999999'
 };
 
 interface AdminHomeSettingsProps {
@@ -37,6 +41,11 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
   const [splashImage, setSplashImage] = useState('');
   const [splashLogo, setSplashLogo] = useState('');
   
+  const [googleReviewsUrl, setGoogleReviewsUrl] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+
   const [heroUploading, setHeroUploading] = useState(false);
   const [philosophyUploading, setPhilosophyUploading] = useState(false);
   const [teaserUploading, setTeaserUploading] = useState(false);
@@ -65,6 +74,10 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
           setSplashSubtitle(data.splashSubtitle || DEFAULT_SETTINGS.splashSubtitle);
           setSplashImage(data.splashImage || DEFAULT_SETTINGS.splashImage);
           setSplashLogo(data.splashLogo || '');
+          setGoogleReviewsUrl(data.googleReviewsUrl || DEFAULT_SETTINGS.googleReviewsUrl);
+          setInstagramUrl(data.instagramUrl || DEFAULT_SETTINGS.instagramUrl);
+          setFacebookUrl(data.facebookUrl || DEFAULT_SETTINGS.facebookUrl);
+          setWhatsappNumber(data.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber);
         } else {
           setHeroTitle(DEFAULT_SETTINGS.heroTitle);
           setHeroSubtitle(DEFAULT_SETTINGS.heroSubtitle);
@@ -77,6 +90,10 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
           setSplashSubtitle(DEFAULT_SETTINGS.splashSubtitle);
           setSplashImage(DEFAULT_SETTINGS.splashImage);
           setSplashLogo('');
+          setGoogleReviewsUrl(DEFAULT_SETTINGS.googleReviewsUrl);
+          setInstagramUrl(DEFAULT_SETTINGS.instagramUrl);
+          setFacebookUrl(DEFAULT_SETTINGS.facebookUrl);
+          setWhatsappNumber(DEFAULT_SETTINGS.whatsappNumber);
         }
       } catch (err) {
         console.error("Error loading home settings:", err);
@@ -184,6 +201,10 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
       splashSubtitle,
       splashImage,
       splashLogo,
+      googleReviewsUrl,
+      instagramUrl,
+      facebookUrl,
+      whatsappNumber,
       updatedAt: new Date().toISOString()
     };
 
@@ -440,6 +461,60 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
                   {logoUploading ? 'Subiendo...' : splashLogo ? 'Cambiar Foto de Círculo' : 'Subir Foto de Círculo'}
                 </label>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* REDES SOCIALES & GOOGLE BUSINESS */}
+        <div className="bg-marfil/40 p-6 rounded-3xl border border-arena/30 space-y-4">
+          <h4 className="font-serif text-lg text-gris font-medium border-b border-arena pb-2">Redes Sociales & Reseñas de Google</h4>
+          
+          <div className="space-y-1">
+            <Label htmlFor="googleReviewsUrl" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Enlace de Reseñas en Google Maps</Label>
+            <input
+              id="googleReviewsUrl"
+              type="url"
+              value={googleReviewsUrl}
+              onChange={(e) => setGoogleReviewsUrl(e.target.value)}
+              className="flex w-full rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia focus:outline-none"
+              placeholder="https://maps.app.goo.gl/..."
+            />
+            <p className="text-[10px] text-gris/60">Este enlace conectará directamente el botón "La voz de nuestra comunidad" con tus reseñas en Google.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <div className="space-y-1">
+              <Label htmlFor="instagramUrl" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Instagram</Label>
+              <input
+                id="instagramUrl"
+                type="url"
+                value={instagramUrl}
+                onChange={(e) => setInstagramUrl(e.target.value)}
+                className="flex w-full rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia focus:outline-none"
+                placeholder="https://instagram.com/uioyoga"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="facebookUrl" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">Facebook</Label>
+              <input
+                id="facebookUrl"
+                type="url"
+                value={facebookUrl}
+                onChange={(e) => setFacebookUrl(e.target.value)}
+                className="flex w-full rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia focus:outline-none"
+                placeholder="https://facebook.com/uioyoga"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="whatsappNumber" className="text-[10px] font-bold uppercase tracking-widest text-terracota opacity-80">WhatsApp / Teléfono</Label>
+              <input
+                id="whatsappNumber"
+                type="text"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                className="flex w-full rounded-2xl border-none bg-white px-4 py-3 text-sm shadow-inner focus-visible:ring-1 focus-visible:ring-salvia focus:outline-none"
+                placeholder="+593999999999"
+              />
             </div>
           </div>
         </div>
