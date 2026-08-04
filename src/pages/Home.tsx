@@ -78,6 +78,7 @@ export function Home() {
     instagramUrl: tenantSettings?.instagramUrl || DEFAULT_SETTINGS.instagramUrl,
     facebookUrl: tenantSettings?.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
     whatsappNumber: tenantSettings?.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber,
+    showTeaserCircle: tenantSettings?.showTeaserCircle !== undefined ? tenantSettings.showTeaserCircle : true,
   };
 
   useEffect(() => {

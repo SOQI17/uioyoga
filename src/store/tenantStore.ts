@@ -63,6 +63,16 @@ export const useTenantStore = create<TenantState>((set) => ({
       root.style.removeProperty('--color-border-override');
       root.style.removeProperty('--color-border-override-50');
 
+      let settings: StudioSettings | null = null;
+      try {
+        const settingsSnap = await getDoc(doc(db, 'settings', 'uioyoga'));
+        if (settingsSnap.exists()) {
+          settings = settingsSnap.data() as StudioSettings;
+        }
+      } catch (err) {
+        console.error("Error loading uioyoga settings:", err);
+      }
+
       set({
         tenantInfo: {
           id: 'uioyoga',
@@ -71,10 +81,11 @@ export const useTenantStore = create<TenantState>((set) => ({
           status: 'active',
           subscriptionPlan: 'enterprise'
         },
-        tenantSettings: {
+        tenantSettings: settings || {
           splashTitle: 'UIO YOGA',
           heroTitle: 'Respira, conecta y transforma',
-          heroSubtitle: 'Bienvenidos a la plataforma SaaS de UIO Yoga.'
+          heroSubtitle: 'Bienvenidos a la plataforma SaaS de UIO Yoga.',
+          showTeaserCircle: true
         },
         tenantExists: true,
         loadingTenant: false

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, getTenantId } from '../lib/firebase';
 import { uploadToCloudinary } from '../lib/cloudinary';
+import { useTenantStore } from '../store/tenantStore';
 import { Button } from './ui/Button';
 import { Label } from './ui/Label';
 import { motion } from 'framer-motion';
@@ -215,6 +216,7 @@ export function AdminHomeSettings({ onSuccess }: AdminHomeSettingsProps) {
 
     try {
       await setDoc(doc(db, 'settings', getTenantId()), settingsData);
+      await useTenantStore.getState().fetchTenantData();
       alert("¡Ajustes de inicio guardados correctamente!");
       onSuccess();
     } catch (err: any) {
