@@ -25,6 +25,10 @@ export interface StudioSettings {
   splashSubtitle?: string;
   splashImage?: string;
   splashLogo?: string;
+  googleReviewsUrl?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  whatsappNumber?: string;
 }
 
 interface TenantState {
