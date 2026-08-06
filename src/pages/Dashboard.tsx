@@ -328,6 +328,8 @@ export function Dashboard() {
 
   // Active Admin/Instructor Tab
   const [activeTab, setActiveTab] = useState<'retreats' | 'home' | 'users' | 'subscriptions' | 'saas_billing' | 'business_metrics' | 'students' | 'library'>('students');
+  // Business Metrics drill-down modal
+  const [metricDetail, setMetricDetail] = useState<'revenue' | 'members' | 'occupancy' | 'new_students' | null>(null);
 
   // Wellness Library States
   const [wellnessItems, setWellnessItems] = useState<any[]>([]);
@@ -2637,7 +2639,7 @@ export function Dashboard() {
                        {/* KPI Cards Row */}
                        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
                          {/* Revenue KPI */}
-                         <div className="relative overflow-hidden bg-[#2a2018] border border-salvia/30 rounded-[20px] p-5 group hover:border-salvia/60 hover:bg-[#312518] transition-all">
+                         <div onClick={() => setMetricDetail('revenue')} className="relative overflow-hidden bg-[#2a2018] border border-salvia/30 rounded-[20px] p-5 group hover:border-salvia/60 hover:bg-[#312518] hover:ring-1 hover:ring-salvia/40 transition-all cursor-pointer">
                            <div className="absolute top-3 right-3 w-8 h-8 bg-salvia/20 rounded-full flex items-center justify-center">
                              <svg className="w-4 h-4 fill-current" style={{color:'#a8bc9f'}} viewBox="0 0 24 24">
                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/>
@@ -2646,10 +2648,11 @@ export function Dashboard() {
                            <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2">Ingresos (últ. 30d)</p>
                            <p className="text-2xl font-serif font-bold text-white">${mrr.toFixed(2)}</p>
                            <p className="text-[9px] font-semibold mt-1.5" style={{color:'#a8bc9f'}}>Membresías activas</p>
+                           <p className="text-[8px] text-white/25 mt-2 group-hover:text-white/50 transition-colors">Ver detalle →</p>
                          </div>
 
                          {/* Active Members KPI */}
-                         <div className="relative overflow-hidden bg-[#2a2018] border border-terracota/30 rounded-[20px] p-5 group hover:border-terracota/60 hover:bg-[#312518] transition-all">
+                         <div onClick={() => setMetricDetail('members')} className="relative overflow-hidden bg-[#2a2018] border border-terracota/30 rounded-[20px] p-5 group hover:border-terracota/60 hover:bg-[#312518] hover:ring-1 hover:ring-terracota/40 transition-all cursor-pointer">
                            <div className="absolute top-3 right-3 w-8 h-8 bg-terracota/20 rounded-full flex items-center justify-center">
                              <svg className="w-4 h-4 text-terracota fill-current" viewBox="0 0 24 24">
                                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
@@ -2658,10 +2661,11 @@ export function Dashboard() {
                            <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2">Miembros Activos</p>
                            <p className="text-2xl font-serif font-bold text-white">{activeStudentsCount}</p>
                            <p className="text-[9px] text-terracota font-semibold mt-1.5">de {totalStudentsCount} registrados</p>
+                           <p className="text-[8px] text-white/25 mt-2 group-hover:text-white/50 transition-colors">Ver detalle →</p>
                          </div>
 
                          {/* Occupancy KPI */}
-                         <div className="relative overflow-hidden bg-[#2a2018] border border-white/15 rounded-[20px] p-5 group hover:border-white/30 hover:bg-[#312518] transition-all">
+                         <div onClick={() => setMetricDetail('occupancy')} className="relative overflow-hidden bg-[#2a2018] border border-white/15 rounded-[20px] p-5 group hover:border-white/30 hover:bg-[#312518] hover:ring-1 hover:ring-white/20 transition-all cursor-pointer">
                            <div className="absolute top-3 right-3 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
                              <svg className="w-4 h-4 text-white/70 fill-current" viewBox="0 0 24 24">
                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/>
@@ -2672,10 +2676,11 @@ export function Dashboard() {
                            <div className="mt-2 w-full bg-white/10 rounded-full h-1.5">
                              <div className="h-full rounded-full transition-all" style={{backgroundColor:'#a8bc9f', width: `${Math.min(parseFloat(String(bookingRate)), 100)}%`}} />
                            </div>
+                           <p className="text-[8px] text-white/25 mt-2 group-hover:text-white/50 transition-colors">Ver detalle →</p>
                          </div>
 
                          {/* New Students KPI */}
-                         <div className="relative overflow-hidden bg-[#2a2018] border border-amber-500/30 rounded-[20px] p-5 group hover:border-amber-500/60 hover:bg-[#312518] transition-all">
+                         <div onClick={() => setMetricDetail('new_students')} className="relative overflow-hidden bg-[#2a2018] border border-amber-500/30 rounded-[20px] p-5 group hover:border-amber-500/60 hover:bg-[#312518] hover:ring-1 hover:ring-amber-500/40 transition-all cursor-pointer">
                            <div className="absolute top-3 right-3 w-8 h-8 bg-amber-500/20 rounded-full flex items-center justify-center">
                              <svg className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 24 24">
                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
@@ -2684,6 +2689,7 @@ export function Dashboard() {
                            <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2">Nuevos Alumnos (30d)</p>
                            <p className="text-2xl font-serif font-bold text-white">+{newStudentsLast30Days}</p>
                            <p className="text-[9px] text-amber-400 font-semibold mt-1.5">Incorporaciones recientes</p>
+                           <p className="text-[8px] text-white/25 mt-2 group-hover:text-white/50 transition-colors">Ver detalle →</p>
                          </div>
                        </div>
 
@@ -2854,11 +2860,105 @@ export function Dashboard() {
                              <p className="text-[9px] text-white/30 leading-relaxed">
                                Panel Enterprise · Datos en tiempo real desde Firestore
                              </p>
-                           </div>
+                         </div>
                          </div>
                        </div>
                      </CardContent>
                    </Card>
+                 )}
+
+                 {/* ─── METRIC DETAIL MODAL ─── */}
+                 {metricDetail && (
+                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn" onClick={() => setMetricDetail(null)}>
+                     <div className="relative w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-[28px] bg-[#1c1814] border border-white/10 shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+                       {/* Modal Header */}
+                       <div className="px-7 pt-7 pb-5 border-b border-white/8 flex items-start justify-between gap-4 shrink-0">
+                         <div>
+                           <p className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/30 mb-1">
+                             {metricDetail === 'revenue' && 'Finanzas'}
+                             {metricDetail === 'members' && 'Membresías'}
+                             {metricDetail === 'occupancy' && 'Clases'}
+                             {metricDetail === 'new_students' && 'Incorporaciones'}
+                           </p>
+                           <h3 className="font-serif text-2xl font-bold text-white">
+                             {metricDetail === 'revenue' && 'Pagos — Últimos 30 días'}
+                             {metricDetail === 'members' && 'Miembros Activos vs Inactivos'}
+                             {metricDetail === 'occupancy' && 'Ocupación por Clase'}
+                             {metricDetail === 'new_students' && 'Nuevos Alumnos — Últimos 30 días'}
+                           </h3>
+                         </div>
+                         <button onClick={() => setMetricDetail(null)} className="shrink-0 w-9 h-9 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center transition-colors mt-0.5">
+                           <svg className="w-4 h-4 text-white/60 fill-current" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                         </button>
+                       </div>
+                       {/* Modal Body */}
+                       <div className="overflow-y-auto flex-1 px-7 py-5 space-y-3">
+                         {/* REVENUE */}
+                         {metricDetail === 'revenue' && (<>
+                           <div className="grid grid-cols-3 gap-3 mb-4">
+                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-salvia/20"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Total 30d</p><p className="text-xl font-serif font-bold text-white">${mrr.toFixed(2)}</p></div>
+                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/8"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Transacciones</p><p className="text-xl font-serif font-bold text-white">{last30DaysPayments.length}</p></div>
+                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/8"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Histórico</p><p className="text-xl font-serif font-bold text-white">${allPayments.reduce((s,p)=>s+(p.amount||0),0).toFixed(2)}</p></div>
+                           </div>
+                           {last30DaysPayments.length > 0 ? [...last30DaysPayments].sort((a,b)=>new Date(b.date||0).getTime()-new Date(a.date||0).getTime()).map((p,i)=>(
+                             <div key={i} className="flex items-center justify-between bg-[#241e19] border border-white/6 rounded-2xl px-5 py-4 hover:bg-[#2a2018] transition-colors">
+                               <div><p className="text-sm font-semibold text-white/90">{p.studentName||p.userName||'Alumno'}</p><p className="text-[10px] text-white/35 mt-0.5">{p.date?new Date(p.date).toLocaleDateString('es',{day:'numeric',month:'long',year:'numeric'}):'Fecha desconocida'}</p></div>
+                               <div className="text-right"><p className="text-lg font-serif font-bold" style={{color:'#a8bc9f'}}>${(p.amount||0).toFixed(2)}</p><p className="text-[9px] text-white/30 capitalize">{p.plan||p.type||'membresía'}</p></div>
+                             </div>
+                           )) : <div className="text-center py-12 text-white/30"><p className="text-4xl mb-3">💸</p><p className="text-sm italic">Sin pagos en los últimos 30 días</p></div>}
+                         </>)}
+                         {/* MEMBERS */}
+                         {metricDetail === 'members' && (<>
+                           <div className="grid grid-cols-2 gap-3 mb-4">
+                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-terracota/25"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Activos</p><p className="text-2xl font-serif font-bold text-white">{activeStudentsCount}</p></div>
+                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/8"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Inactivos</p><p className="text-2xl font-serif font-bold text-white/50">{totalStudentsCount-activeStudentsCount}</p></div>
+                           </div>
+                           {users.filter(u=>u.role==='student').sort((a,b)=>(b.subscriptionActive?1:0)-(a.subscriptionActive?1:0)).map((u,i)=>(
+                             <div key={i} className="flex items-center justify-between bg-[#241e19] border border-white/6 rounded-2xl px-5 py-4 hover:bg-[#2a2018] transition-colors">
+                               <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-white/8 flex items-center justify-center shrink-0"><span className="text-sm font-bold text-white/60">{(u.name||'A')[0].toUpperCase()}</span></div><div><p className="text-sm font-semibold text-white/90">{u.name||'Alumno'}</p><p className="text-[10px] text-white/35">{u.email}</p></div></div>
+                               <span className={`text-[9px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${u.subscriptionActive?'bg-salvia/20 text-salvia':'bg-red-900/30 text-red-400'}`}>{u.subscriptionActive?'Activa':'Inactiva'}</span>
+                             </div>
+                           ))}
+                         </>)}
+                         {/* OCCUPANCY */}
+                         {metricDetail === 'occupancy' && (<>
+                           <div className="grid grid-cols-3 gap-3 mb-4">
+                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/10"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Ocupación</p><p className="text-2xl font-serif font-bold text-white">{bookingRate}%</p></div>
+                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/8"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Reservas</p><p className="text-2xl font-serif font-bold text-white">{totalBookingsCount}</p></div>
+                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/8"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Capacidad</p><p className="text-2xl font-serif font-bold text-white">{totalClassCapacity}</p></div>
+                           </div>
+                           {classes.length > 0 ? [...classes].sort((a,b)=>(bookings[b.id]?.length||0)-(bookings[a.id]?.length||0)).map((c,i)=>{
+                             const booked=bookings[c.id]?.length||0; const cap=c.capacity||1; const pct=Math.min((booked/cap)*100,100);
+                             const barColor=pct>=80?'#c08575':pct>=50?'#a8bc9f':'#6e8b6a';
+                             return(<div key={i} className="bg-[#241e19] border border-white/6 rounded-2xl px-5 py-4 hover:bg-[#2a2018] transition-colors">
+                               <div className="flex justify-between items-center mb-2">
+                                 <div><p className="text-sm font-semibold text-white/90">{c.title||'Clase'}</p><p className="text-[10px] text-white/35 mt-0.5">{c.instructor||''}{c.date?' · '+new Date(c.date).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'}):''}</p></div>
+                                 <div className="text-right shrink-0 ml-4"><p className="text-sm font-bold text-white/80">{booked}/{cap}</p><p className="text-[9px] font-bold" style={{color:barColor}}>{pct.toFixed(0)}%</p></div>
+                               </div>
+                               <div className="w-full h-1.5 bg-white/8 rounded-full"><div className="h-full rounded-full" style={{width:`${pct}%`,backgroundColor:barColor}}/></div>
+                             </div>);
+                           }) : <div className="text-center py-12 text-white/30"><p className="text-4xl mb-3">🧘</p><p className="text-sm italic">No hay clases programadas</p></div>}
+                         </>)}
+                         {/* NEW STUDENTS */}
+                         {metricDetail === 'new_students' && (()=>{
+                           const ns=users.filter(u=>{if(u.role!=='student'||!u.createdAt)return false;return Date.now()-new Date(u.createdAt).getTime()<=30*24*60*60*1000;}).sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime());
+                           return(<>
+                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-amber-500/25 mb-4"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Nuevos en 30 días</p><p className="text-3xl font-serif font-bold text-white">+{ns.length}</p></div>
+                             {ns.length>0?ns.map((u,i)=>(
+                               <div key={i} className="flex items-center justify-between bg-[#241e19] border border-white/6 rounded-2xl px-5 py-4 hover:bg-[#2a2018] transition-colors">
+                                 <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-amber-500/15 flex items-center justify-center shrink-0"><span className="text-sm font-bold text-amber-400">{(u.name||'A')[0].toUpperCase()}</span></div><div><p className="text-sm font-semibold text-white/90">{u.name||'Alumno'}</p><p className="text-[10px] text-white/35">{u.email}</p></div></div>
+                                 <div className="text-right shrink-0"><p className="text-[10px] text-white/40">{new Date(u.createdAt).toLocaleDateString('es',{day:'numeric',month:'short'})}</p><span className={`text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${u.subscriptionActive?'bg-salvia/20 text-salvia':'bg-white/8 text-white/40'}`}>{u.subscriptionActive?'Con membresía':'Sin membresía'}</span></div>
+                               </div>
+                             )):<div className="text-center py-12 text-white/30"><p className="text-4xl mb-3">🌱</p><p className="text-sm italic">Sin nuevos alumnos en los últimos 30 días</p></div>}
+                           </>);
+                         })()}
+                       </div>
+                       {/* Modal Footer */}
+                       <div className="px-7 py-4 border-t border-white/8 shrink-0 flex justify-end">
+                         <button onClick={() => setMetricDetail(null)} className="text-[10px] font-bold uppercase tracking-wider text-white/40 hover:text-white/70 transition-colors px-4 py-2 rounded-full hover:bg-white/8">Cerrar</button>
+                       </div>
+                     </div>
+                   </div>
                  )}
 
                 {activeTab === 'students' && (
