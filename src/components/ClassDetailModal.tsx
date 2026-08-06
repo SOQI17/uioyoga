@@ -77,13 +77,14 @@ export function ClassDetailModal({
           className="relative w-full max-w-lg rounded-[28px] sm:rounded-[32px] border-4 sm:border-[6px] border-[#4a2e1b] bg-arena shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
         >
           {/* Header Image with Dark Overlay */}
-          <div className="relative h-40 sm:h-56 w-full overflow-hidden shrink-0">
+          <div className="relative h-52 sm:h-72 w-full overflow-hidden shrink-0">
             <img
               src={classItem.image || `https://images.unsplash.com/photo-1575052814086-f385e2e2ad1b?q=80&w=800&auto=format&fit=crop`}
               alt={classItem.title}
-              className="w-full h-full object-cover opacity-80"
+              className="absolute inset-0 w-full h-full object-cover object-center scale-105 hover:scale-100 transition-transform duration-700"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#121214] via-[#121214]/60 to-transparent" />
+            {/* Gradient: only bottom 60% darkens so the image is visible at top */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#121214] via-[#121214]/50 to-transparent" />
             
             {/* Close Button */}
             <button
