@@ -330,6 +330,8 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState<'retreats' | 'home' | 'users' | 'subscriptions' | 'saas_billing' | 'business_metrics' | 'students' | 'library'>('students');
   // Business Metrics drill-down modal
   const [metricDetail, setMetricDetail] = useState<'revenue' | 'members' | 'occupancy' | 'new_students' | null>(null);
+  // Occupancy modal view toggle: grouped by title or per-class instance
+  const [occView, setOccView] = useState<'by_type' | 'by_class'>('by_type');
 
   // Wellness Library States
   const [wellnessItems, setWellnessItems] = useState<any[]>([]);
@@ -2921,24 +2923,97 @@ export function Dashboard() {
                            ))}
                          </>)}
                          {/* OCCUPANCY */}
-                         {metricDetail === 'occupancy' && (<>
-                           <div className="grid grid-cols-3 gap-3 mb-4">
-                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/10"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Ocupación</p><p className="text-2xl font-serif font-bold text-white">{bookingRate}%</p></div>
-                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/8"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Reservas</p><p className="text-2xl font-serif font-bold text-white">{totalBookingsCount}</p></div>
-                             <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/8"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Capacidad</p><p className="text-2xl font-serif font-bold text-white">{totalClassCapacity}</p></div>
-                           </div>
-                           {classes.length > 0 ? [...classes].sort((a,b)=>(bookings[b.id]?.length||0)-(bookings[a.id]?.length||0)).map((c,i)=>{
-                             const booked=bookings[c.id]?.length||0; const cap=c.capacity||1; const pct=Math.min((booked/cap)*100,100);
-                             const barColor=pct>=80?'#c08575':pct>=50?'#a8bc9f':'#6e8b6a';
-                             return(<div key={i} className="bg-[#241e19] border border-white/6 rounded-2xl px-5 py-4 hover:bg-[#2a2018] transition-colors">
-                               <div className="flex justify-between items-center mb-2">
-                                 <div><p className="text-sm font-semibold text-white/90">{c.title||'Clase'}</p><p className="text-[10px] text-white/35 mt-0.5">{c.instructor||''}{c.date?' · '+new Date(c.date).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'}):''}</p></div>
-                                 <div className="text-right shrink-0 ml-4"><p className="text-sm font-bold text-white/80">{booked}/{cap}</p><p className="text-[9px] font-bold" style={{color:barColor}}>{pct.toFixed(0)}%</p></div>
-                               </div>
-                               <div className="w-full h-1.5 bg-white/8 rounded-full"><div className="h-full rounded-full" style={{width:`${pct}%`,backgroundColor:barColor}}/></div>
-                             </div>);
-                           }) : <div className="text-center py-12 text-white/30"><p className="text-4xl mb-3">🧘</p><p className="text-sm italic">No hay clases programadas</p></div>}
-                         </>)}
+                         {metricDetail === 'occupancy' && (()=>{
+                           // Build grouped-by-title data
+                           const byType: Record<string,{booked:number,cap:number,sessions:number}> = {};
+                           classes.forEach(c=>{
+                             const t=c.title||'Sin título';
+                             if(!byType[t]) byType[t]={booked:0,cap:0,sessions:0};
+                             byType[t].booked+=(bookings[c.id]?.length||0);
+                             byType[t].cap+=(c.capacity||0);
+                             byType[t].sessions+=1;
+                           });
+                           const typeList=Object.entries(byType).map(([title,v])=>({title,...v,pct:v.cap>0?Math.min((v.booked/v.cap)*100,100):0})).sort((a,b)=>b.booked-a.booked);
+                           const maxBooked=Math.max(...typeList.map(t=>t.booked),1);
+                           return(<>
+                             {/* Summary strip */}
+                             <div className="grid grid-cols-3 gap-3 mb-4">
+                               <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/10"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Ocupación</p><p className="text-2xl font-serif font-bold text-white">{bookingRate}%</p></div>
+                               <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/8"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Reservas</p><p className="text-2xl font-serif font-bold text-white">{totalBookingsCount}</p></div>
+                               <div className="bg-[#2a2018] rounded-2xl p-4 text-center border border-white/8"><p className="text-[8px] uppercase tracking-widest text-white/30 mb-1">Capacidad</p><p className="text-2xl font-serif font-bold text-white">{totalClassCapacity}</p></div>
+                             </div>
+
+                             {/* View toggle */}
+                             <div className="flex bg-[#241e19] rounded-2xl p-1 gap-1 mb-4 border border-white/6">
+                               <button onClick={()=>setOccView('by_type')} className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${occView==='by_type'?'bg-[#2a2018] text-white shadow-sm':'text-white/35 hover:text-white/60'}`}>
+                                 📊 Por Tipo de Yoga
+                               </button>
+                               <button onClick={()=>setOccView('by_class')} className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${occView==='by_class'?'bg-[#2a2018] text-white shadow-sm':'text-white/35 hover:text-white/60'}`}>
+                                 📅 Por Sesión
+                               </button>
+                             </div>
+
+                             {/* BY TYPE VIEW */}
+                             {occView==='by_type' && (
+                               typeList.length>0 ? (
+                                 <div className="space-y-3">
+                                   {typeList.map((t,i)=>{
+                                     const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`;
+                                     const barColor=t.pct>=80?'#c08575':t.pct>=40?'#a8bc9f':'#6e8b6a';
+                                     const popularPct=(t.booked/maxBooked)*100;
+                                     return(
+                                       <div key={i} className="bg-[#241e19] border border-white/6 rounded-2xl px-5 py-5 hover:bg-[#2a2018] transition-colors">
+                                         <div className="flex justify-between items-start mb-3">
+                                           <div className="flex items-center gap-2.5">
+                                             <span className="text-xl shrink-0">{medal}</span>
+                                             <div>
+                                               <p className="text-sm font-bold text-white/95">{t.title}</p>
+                                               <p className="text-[10px] text-white/35 mt-0.5">{t.sessions} sesión{t.sessions!==1?'es':''} programada{t.sessions!==1?'s':''}</p>
+                                             </div>
+                                           </div>
+                                           <div className="text-right shrink-0 ml-3">
+                                             <p className="text-base font-serif font-bold text-white">{t.booked} <span className="text-white/40 text-xs">reservas</span></p>
+                                             <p className="text-[9px] font-bold mt-0.5" style={{color:barColor}}>{t.pct.toFixed(0)}% ocupación</p>
+                                           </div>
+                                         </div>
+                                         {/* Popularity bar (relative to most popular type) */}
+                                         <div className="w-full h-2 bg-white/8 rounded-full overflow-hidden">
+                                           <div className="h-full rounded-full transition-all" style={{width:`${popularPct}%`,backgroundColor:barColor}}/>
+                                         </div>
+                                         <div className="flex justify-between mt-1.5">
+                                           <p className="text-[8px] text-white/20">0 reservas</p>
+                                           <p className="text-[8px] text-white/20">{maxBooked} reservas (máx.)</p>
+                                         </div>
+                                       </div>
+                                     );
+                                   })}
+                                 </div>
+                               ) : <div className="text-center py-12 text-white/30"><p className="text-4xl mb-3">🧘</p><p className="text-sm italic">No hay clases programadas</p></div>
+                             )}
+
+                             {/* BY CLASS (SESSION) VIEW */}
+                             {occView==='by_class' && (
+                               classes.length>0 ? (
+                                 <div className="space-y-3">
+                                   {[...classes].sort((a,b)=>(bookings[b.id]?.length||0)-(bookings[a.id]?.length||0)).map((c,i)=>{
+                                     const booked=bookings[c.id]?.length||0; const cap=c.capacity||1; const pct=Math.min((booked/cap)*100,100);
+                                     const barColor=pct>=80?'#c08575':pct>=50?'#a8bc9f':'#6e8b6a';
+                                     return(
+                                       <div key={i} className="bg-[#241e19] border border-white/6 rounded-2xl px-5 py-4 hover:bg-[#2a2018] transition-colors">
+                                         <div className="flex justify-between items-center mb-2">
+                                           <div><p className="text-sm font-semibold text-white/90">{c.title||'Clase'}</p><p className="text-[10px] text-white/35 mt-0.5">{c.instructor||''}{c.date?' · '+new Date(c.date).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'}):''}</p></div>
+                                           <div className="text-right shrink-0 ml-4"><p className="text-sm font-bold text-white/80">{booked}/{cap}</p><p className="text-[9px] font-bold" style={{color:barColor}}>{pct.toFixed(0)}%</p></div>
+                                         </div>
+                                         <div className="w-full h-1.5 bg-white/8 rounded-full"><div className="h-full rounded-full" style={{width:`${pct}%`,backgroundColor:barColor}}/></div>
+                                       </div>
+                                     );
+                                   })}
+                                 </div>
+                               ) : <div className="text-center py-12 text-white/30"><p className="text-4xl mb-3">🧘</p><p className="text-sm italic">No hay clases programadas</p></div>
+                             )}
+                           </>);
+                         })()}
+
                          {/* NEW STUDENTS */}
                          {metricDetail === 'new_students' && (()=>{
                            const ns=users.filter(u=>{if(u.role!=='student'||!u.createdAt)return false;return Date.now()-new Date(u.createdAt).getTime()<=30*24*60*60*1000;}).sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime());
