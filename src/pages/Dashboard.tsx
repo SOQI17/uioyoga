@@ -2612,160 +2612,254 @@ export function Dashboard() {
                   </div>
                 )}
                 {activeTab === 'business_metrics' && tenantInfo?.subscriptionPlan === 'enterprise' && (
-                  <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden animate-fadeIn">
-                    <CardHeader className="px-8 pt-8 pb-4">
-                      <CardTitle className="font-serif text-2xl text-gris">Métricas de Negocio</CardTitle>
-                      <p className="text-xs text-gris/60">Analiza el rendimiento comercial, afluencia y reservas en tu estudio de yoga.</p>
-                    </CardHeader>
-                    <CardContent className="px-8 pb-8 space-y-8">
-                      {/* KPIs grid */}
-                      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-                        <div className="bg-arena/30 p-4 rounded-2xl border border-arena/20 text-center space-y-1">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-terracota">Ingresos (Últ. 30d)</p>
-                          <p className="text-2xl font-serif font-bold text-salvia">${mrr.toFixed(2)}</p>
-                        </div>
-                        <div className="bg-arena/30 p-4 rounded-2xl border border-arena/20 text-center space-y-1">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-terracota">Miembros Activos</p>
-                          <p className="text-2xl font-serif font-bold text-gris">{activeStudentsCount} / {totalStudentsCount}</p>
-                        </div>
-                        <div className="bg-arena/30 p-4 rounded-2xl border border-arena/20 text-center space-y-1">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-terracota">Ocupación Promedio</p>
-                          <p className="text-2xl font-serif font-bold text-gris">{bookingRate}%</p>
-                        </div>
-                        <div className="bg-arena/30 p-4 rounded-2xl border border-arena/20 text-center space-y-1">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-terracota">Nuevos Alumnos (30d)</p>
-                          <p className="text-2xl font-serif font-bold text-gris">+{newStudentsLast30Days}</p>
-                        </div>
-                      </div>
+                   <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden animate-fadeIn">
+                     {/* Premium Dark Header */}
+                     <div className="relative bg-[#1c1814] px-8 pt-8 pb-10 overflow-hidden">
+                       <div className="absolute inset-0 bg-gradient-to-br from-[#2a2018]/80 to-[#1c1814]" />
+                       <div className="absolute top-0 right-0 w-64 h-64 bg-salvia/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+                       <div className="absolute bottom-0 left-0 w-40 h-40 bg-terracota/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
+                       <div className="relative z-10">
+                         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                           <div>
+                             <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-salvia/70 mb-1">Panel Empresarial</p>
+                             <h2 className="font-serif text-3xl font-bold text-white">Métricas de Negocio</h2>
+                             <p className="text-xs text-white/40 mt-1">Rendimiento comercial · Afluencia · Reservas</p>
+                           </div>
+                           <div className="text-right shrink-0">
+                             <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Período activo</p>
+                             <p className="text-sm font-bold text-white/70 font-serif">{new Date().toLocaleDateString('es', { month: 'long', year: 'numeric' })}</p>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
 
-                      {/* Charts Grid */}
-                      <div className="grid gap-6 md:grid-cols-2">
-                        {/* Revenue line chart */}
-                        <div className="space-y-3">
-                          <h4 className="text-xs font-bold uppercase tracking-widest text-gris opacity-70">Tendencia de Ingresos Mensuales</h4>
-                          {allPaymentsLoading ? (
-                            <div className="flex justify-center py-10 bg-arena/20 rounded-3xl border border-arena/20">
-                              <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
-                            </div>
-                          ) : (
-                            <div className="p-4 bg-arena/20 rounded-3xl border border-arena/20 shadow-inner">
-                              {revenueData.some(d => d.value > 0) ? (
-                                <svg viewBox="0 0 350 140" className="w-full h-auto">
-                                  {/* Grid lines */}
-                                  {[0, 0.5, 1].map((ratio) => {
-                                    const maxVal = Math.max(...revenueData.map(d => d.value), 100);
-                                    const val = Math.round(maxVal * ratio);
-                                    const y = 15 + (1 - ratio) * 90;
-                                    return (
-                                      <g key={ratio} className="opacity-25">
-                                        <line x1={35} y1={y} x2={335} y2={y} stroke="var(--color-gris, #433e3f)" strokeWidth="0.5" strokeDasharray="2,2" />
-                                        <text x={5} y={y + 2.5} className="text-[6.5px] font-bold fill-gris">${val}</text>
-                                      </g>
-                                    );
-                                  })}
+                     <CardContent className="px-6 pb-8 -mt-4 space-y-6">
+                       {/* KPI Cards Row */}
+                       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                         {/* Revenue KPI */}
+                         <div className="relative overflow-hidden bg-gradient-to-br from-salvia/15 to-salvia/5 border border-salvia/20 rounded-[20px] p-5 group hover:border-salvia/40 transition-all">
+                           <div className="absolute top-3 right-3 w-8 h-8 bg-salvia/15 rounded-full flex items-center justify-center">
+                             <svg className="w-4 h-4 text-salvia fill-current" viewBox="0 0 24 24">
+                               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/>
+                             </svg>
+                           </div>
+                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/50 mb-2">Ingresos (últ. 30d)</p>
+                           <p className="text-2xl font-serif font-bold text-gris">${mrr.toFixed(2)}</p>
+                           <p className="text-[9px] text-salvia font-semibold mt-1.5">Membresías activas</p>
+                         </div>
 
-                                  {/* Line path */}
-                                  {(() => {
-                                    const maxVal = Math.max(...revenueData.map(d => d.value), 100);
-                                    const points = revenueData.map((d, idx) => {
-                                      const x = 40 + (idx / 5) * 280;
-                                      const y = 15 + 90 - (d.value / maxVal) * 90;
-                                      return { x, y, val: d.value };
-                                    });
-                                    const pathD = points.reduce((acc, p, idx) => acc + `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '');
-                                    return (
-                                      <>
-                                        <path d={pathD} fill="none" stroke="var(--color-salvia, #8b9c86)" strokeWidth="2" />
-                                        {points.map((p, idx) => (
-                                          <g key={idx}>
-                                            <circle cx={p.x} cy={p.y} r="2.5" fill="var(--color-terracota, #c08575)" stroke="white" strokeWidth="0.5" />
-                                            <text x={p.x} y={p.y - 5} textAnchor="middle" className="text-[5.5px] font-bold fill-gris">${p.val.toFixed(0)}</text>
-                                            <text x={p.x} y={125} textAnchor="middle" className="text-[5.5px] font-semibold fill-gris/50">{revenueData[idx].label}</text>
-                                          </g>
-                                        ))}
-                                      </>
-                                    );
-                                  })()}
-                                </svg>
-                              ) : (
-                                <p className="text-center text-xs text-gris/40 py-10 italic">No se registran pagos de membresía en los últimos 6 meses.</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                         {/* Active Members KPI */}
+                         <div className="relative overflow-hidden bg-gradient-to-br from-terracota/10 to-terracota/5 border border-terracota/20 rounded-[20px] p-5 group hover:border-terracota/40 transition-all">
+                           <div className="absolute top-3 right-3 w-8 h-8 bg-terracota/15 rounded-full flex items-center justify-center">
+                             <svg className="w-4 h-4 text-terracota fill-current" viewBox="0 0 24 24">
+                               <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                             </svg>
+                           </div>
+                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/50 mb-2">Miembros Activos</p>
+                           <p className="text-2xl font-serif font-bold text-gris">{activeStudentsCount}</p>
+                           <p className="text-[9px] text-terracota font-semibold mt-1.5">de {totalStudentsCount} registrados</p>
+                         </div>
 
-                        {/* Popular Classes Bar Chart */}
-                        <div className="space-y-3">
-                          <h4 className="text-xs font-bold uppercase tracking-widest text-gris opacity-70">Clases Más Reservadas (Top 5)</h4>
-                          <div className="p-4 bg-arena/20 rounded-3xl border border-arena/20 shadow-inner">
-                            {classPopularity.length > 0 ? (
-                              <svg viewBox="0 0 350 140" className="w-full h-auto">
-                                {classPopularity.map((d, idx) => {
-                                  const maxVal = Math.max(...classPopularity.map(c => c.value), 1);
-                                  const barWidth = (d.value / maxVal) * 200;
-                                  const y = 10 + idx * 25;
-                                  return (
-                                    <g key={idx}>
-                                      {/* Class Name */}
-                                      <text x={5} y={y + 12} className="text-[6.5px] font-bold fill-gris" textAnchor="start">
-                                        {d.label.length > 18 ? d.label.substring(0, 18) + '..' : d.label}
-                                      </text>
-                                      {/* Bar */}
-                                      <rect
-                                        x={100}
-                                        y={y + 4}
-                                        width={barWidth || 5}
-                                        height={10}
-                                        rx={5}
-                                        fill="var(--color-salvia, #8b9c86)"
-                                        className="fill-salvia/75"
-                                      />
-                                      {/* Count Text */}
-                                      <text x={105 + barWidth} y={y + 12} className="text-[6.5px] font-bold fill-gris">
-                                        {d.value} reserv.
-                                      </text>
-                                    </g>
-                                  );
-                                })}
-                              </svg>
-                            ) : (
-                              <p className="text-center text-xs text-gris/40 py-10 italic">Aún no hay reservas registradas en las clases.</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                         {/* Occupancy KPI */}
+                         <div className="relative overflow-hidden bg-gradient-to-br from-gris/10 to-gris/5 border border-gris/15 rounded-[20px] p-5 group hover:border-gris/30 transition-all">
+                           <div className="absolute top-3 right-3 w-8 h-8 bg-gris/10 rounded-full flex items-center justify-center">
+                             <svg className="w-4 h-4 text-gris fill-current" viewBox="0 0 24 24">
+                               <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/>
+                             </svg>
+                           </div>
+                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/50 mb-2">Ocupación Promedio</p>
+                           <p className="text-2xl font-serif font-bold text-gris">{bookingRate}%</p>
+                           <div className="mt-2 w-full bg-gris/10 rounded-full h-1">
+                             <div className="bg-salvia h-1 rounded-full transition-all" style={{ width: `${Math.min(parseFloat(String(bookingRate)), 100)}%` }} />
+                           </div>
+                         </div>
 
-                      {/* Extra Metrics List */}
-                      <div className="grid gap-6 md:grid-cols-2 pt-4 border-t border-arena/20">
-                        {/* Popular hour slots */}
-                        <div className="space-y-3">
-                          <h4 className="text-xs font-bold uppercase tracking-widest text-gris opacity-70">Horas Pico de Afluencia</h4>
-                          <div className="bg-arena/10 rounded-2xl p-4 border border-arena/10 space-y-2">
-                            {popularHours.length > 0 ? (
-                              popularHours.map((h, idx) => (
-                                <div key={idx} className="flex justify-between items-center text-xs border-b border-arena/10 pb-1.5 last:border-0 last:pb-0">
-                                  <span className="font-semibold text-gris">Slot Horario: {h.label} hs</span>
-                                  <span className="text-[10px] font-bold text-salvia bg-salvia/10 px-2 py-0.5 rounded-full">{h.value} reservas registradas</span>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-center text-xs text-gris/40 py-4 italic">No hay clases programadas con reservas.</p>
-                            )}
-                          </div>
-                        </div>
+                         {/* New Students KPI */}
+                         <div className="relative overflow-hidden bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 rounded-[20px] p-5 group hover:border-amber-500/40 transition-all">
+                           <div className="absolute top-3 right-3 w-8 h-8 bg-amber-500/15 rounded-full flex items-center justify-center">
+                             <svg className="w-4 h-4 text-amber-600 fill-current" viewBox="0 0 24 24">
+                               <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                             </svg>
+                           </div>
+                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/50 mb-2">Nuevos Alumnos (30d)</p>
+                           <p className="text-2xl font-serif font-bold text-gris">+{newStudentsLast30Days}</p>
+                           <p className="text-[9px] text-amber-600 font-semibold mt-1.5">Incorporaciones recientes</p>
+                         </div>
+                       </div>
 
-                        {/* Summary Cards */}
-                        <div className="bg-terracota/5 rounded-2xl p-6 border border-terracota/10 flex flex-col justify-center space-y-3">
-                          <h4 className="font-serif text-lg text-terracota font-bold">Resumen de Operación</h4>
-                          <p className="text-xs text-gris/75 leading-relaxed">
-                            Tu tasa de ocupación actual de clases es del <strong>{bookingRate}%</strong>.
-                            El servicio ha generado un volumen total de <strong>${allPayments.reduce((sum, p) => sum + (p.amount || 0), 0).toFixed(2)} USD</strong> en transacciones totales registradas históricamente.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                       {/* Charts Row */}
+                       <div className="grid gap-4 md:grid-cols-2">
+                         {/* Revenue Chart */}
+                         <div className="bg-[#f9f7f4] border border-arena/30 rounded-[20px] p-5">
+                           <div className="flex items-center justify-between mb-4">
+                             <div>
+                               <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/40 mb-0.5">Tendencia</p>
+                               <h4 className="text-xs font-bold text-gris">Ingresos Mensuales</h4>
+                             </div>
+                             <span className="text-[8px] font-bold uppercase tracking-wider bg-salvia/15 text-salvia px-2.5 py-1 rounded-full">6 Meses</span>
+                           </div>
+                           {allPaymentsLoading ? (
+                             <div className="flex justify-center items-center h-32">
+                               <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-salvia"></div>
+                             </div>
+                           ) : revenueData.some(d => d.value > 0) ? (
+                             <svg viewBox="0 0 340 130" className="w-full h-auto overflow-visible">
+                               <defs>
+                                 <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                                   <stop offset="0%" stopColor="var(--color-salvia, #8b9c86)" stopOpacity="0.25"/>
+                                   <stop offset="100%" stopColor="var(--color-salvia, #8b9c86)" stopOpacity="0"/>
+                                 </linearGradient>
+                               </defs>
+                               {/* Y-axis labels + grid */}
+                               {[0, 0.5, 1].map((ratio) => {
+                                 const maxVal = Math.max(...revenueData.map(d => d.value), 100);
+                                 const val = Math.round(maxVal * ratio);
+                                 const y = 10 + (1 - ratio) * 90;
+                                 return (
+                                   <g key={ratio}>
+                                     <line x1={30} y1={y} x2={330} y2={y} stroke="#c8bfb5" strokeWidth="0.5" strokeDasharray="3,3" opacity="0.5"/>
+                                     <text x={0} y={y + 3} className="text-[5px] fill-gris/40" fontSize="5.5">${val}</text>
+                                   </g>
+                                 );
+                               })}
+                               {/* Area fill + line */}
+                               {(() => {
+                                 const maxVal = Math.max(...revenueData.map(d => d.value), 100);
+                                 const pts = revenueData.map((d, i) => ({
+                                   x: 35 + (i / (revenueData.length - 1)) * 285,
+                                   y: 10 + 90 - (d.value / maxVal) * 90
+                                 }));
+                                 const lineD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                                 const areaD = `${lineD} L ${pts[pts.length-1].x} 100 L ${pts[0].x} 100 Z`;
+                                 return (
+                                   <>
+                                     <path d={areaD} fill="url(#revenueGrad)" />
+                                     <path d={lineD} fill="none" stroke="var(--color-salvia,#8b9c86)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                     {pts.map((p, i) => (
+                                       <g key={i}>
+                                         <circle cx={p.x} cy={p.y} r="3.5" fill="white" stroke="var(--color-salvia,#8b9c86)" strokeWidth="1.5"/>
+                                         <text x={p.x} y={115} textAnchor="middle" fontSize="5.5" className="fill-gris/50">{revenueData[i].label}</text>
+                                       </g>
+                                     ))}
+                                   </>
+                                 );
+                               })()}
+                             </svg>
+                           ) : (
+                             <div className="flex flex-col items-center justify-center h-32 text-center gap-2">
+                               <svg className="w-8 h-8 text-gris/20 fill-current" viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+                               <p className="text-[10px] text-gris/35 italic">Sin registros de pago en los últimos 6 meses</p>
+                             </div>
+                           )}
+                         </div>
+
+                         {/* Top Classes Chart */}
+                         <div className="bg-[#f9f7f4] border border-arena/30 rounded-[20px] p-5">
+                           <div className="flex items-center justify-between mb-4">
+                             <div>
+                               <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/40 mb-0.5">Popularidad</p>
+                               <h4 className="text-xs font-bold text-gris">Clases Más Reservadas</h4>
+                             </div>
+                             <span className="text-[8px] font-bold uppercase tracking-wider bg-terracota/15 text-terracota px-2.5 py-1 rounded-full">Top 5</span>
+                           </div>
+                           {classPopularity.length > 0 ? (
+                             <div className="space-y-3">
+                               {classPopularity.map((d, idx) => {
+                                 const maxVal = Math.max(...classPopularity.map(c => c.value), 1);
+                                 const pct = (d.value / maxVal) * 100;
+                                 const colors = ['bg-salvia', 'bg-terracota/80', 'bg-gris/60', 'bg-amber-400/70', 'bg-salvia/50'];
+                                 return (
+                                   <div key={idx} className="space-y-1">
+                                     <div className="flex justify-between items-center">
+                                       <span className="text-[10px] font-semibold text-gris truncate max-w-[150px]">{d.label}</span>
+                                       <span className="text-[10px] font-bold text-gris/50">{d.value} reservas</span>
+                                     </div>
+                                     <div className="w-full h-2 bg-arena/40 rounded-full overflow-hidden">
+                                       <div className={`h-full rounded-full transition-all ${colors[idx % colors.length]}`} style={{ width: `${pct}%` }} />
+                                     </div>
+                                   </div>
+                                 );
+                               })}
+                             </div>
+                           ) : (
+                             <div className="flex flex-col items-center justify-center h-32 text-center gap-2">
+                               <svg className="w-8 h-8 text-gris/20 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                               <p className="text-[10px] text-gris/35 italic">Aún no hay reservas registradas</p>
+                             </div>
+                           )}
+                         </div>
+                       </div>
+
+                       {/* Bottom Row: Peak Hours + Summary */}
+                       <div className="grid gap-4 md:grid-cols-2">
+                         {/* Peak Hours */}
+                         <div className="bg-[#f9f7f4] border border-arena/30 rounded-[20px] p-5">
+                           <div className="flex items-center gap-2 mb-4">
+                             <div className="w-7 h-7 rounded-full bg-salvia/15 flex items-center justify-center">
+                               <svg className="w-3.5 h-3.5 text-salvia fill-current" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+                             </div>
+                             <div>
+                               <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/40">Afluencia</p>
+                               <h4 className="text-xs font-bold text-gris">Horas Pico</h4>
+                             </div>
+                           </div>
+                           {popularHours.length > 0 ? (
+                             <div className="space-y-2.5">
+                               {popularHours.map((h, idx) => {
+                                 const max = Math.max(...popularHours.map(x => x.value), 1);
+                                 const rank = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
+                                 return (
+                                   <div key={idx} className="flex items-center gap-3">
+                                     <span className="text-sm shrink-0">{rank}</span>
+                                     <div className="flex-1 min-w-0">
+                                       <div className="flex justify-between items-center mb-1">
+                                         <span className="text-[10px] font-bold text-gris">{h.label} hs</span>
+                                         <span className="text-[9px] text-gris/50">{h.value} reservas</span>
+                                       </div>
+                                       <div className="w-full h-1.5 bg-arena/40 rounded-full">
+                                         <div className="h-full bg-salvia/60 rounded-full" style={{ width: `${(h.value/max)*100}%` }} />
+                                       </div>
+                                     </div>
+                                   </div>
+                                 );
+                               })}
+                             </div>
+                           ) : (
+                             <p className="text-center text-[10px] text-gris/40 italic py-6">No hay clases con reservas registradas</p>
+                           )}
+                         </div>
+
+                         {/* Summary */}
+                         <div className="relative overflow-hidden bg-gradient-to-br from-[#1c1814] to-[#2a2018] rounded-[20px] p-6 flex flex-col justify-between">
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-salvia/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+                           <div className="relative z-10">
+                             <p className="text-[8px] font-bold uppercase tracking-[0.3em] text-salvia/60 mb-2">Resumen Ejecutivo</p>
+                             <h4 className="font-serif text-lg font-bold text-white mb-3">Estado del Estudio</h4>
+                             <div className="space-y-3">
+                               <div className="flex justify-between items-center text-xs border-b border-white/10 pb-2">
+                                 <span className="text-white/50">Tasa de ocupación</span>
+                                 <span className="font-bold text-salvia">{bookingRate}%</span>
+                               </div>
+                               <div className="flex justify-between items-center text-xs border-b border-white/10 pb-2">
+                                 <span className="text-white/50">Total histórico</span>
+                                 <span className="font-bold text-white">${allPayments.reduce((s, p) => s + (p.amount || 0), 0).toFixed(2)} USD</span>
+                               </div>
+                               <div className="flex justify-between items-center text-xs">
+                                 <span className="text-white/50">Miembros activos</span>
+                             <span className="font-bold text-amber-400">{activeStudentsCount} / {totalStudentsCount}</span>
+                               </div>
+                             </div>
+                           </div>
+                           <div className="relative z-10 mt-4 pt-3 border-t border-white/10">
+                             <p className="text-[9px] text-white/30 leading-relaxed">
+                               Panel Enterprise · Datos en tiempo real desde Firestore
+                             </p>
+                           </div>
+                         </div>
+                       </div>
+                     </CardContent>
+                   </Card>
+                 )}
 
                 {activeTab === 'students' && (
                   <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden animate-fadeIn">
