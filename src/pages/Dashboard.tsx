@@ -2612,91 +2612,91 @@ export function Dashboard() {
                   </div>
                 )}
                 {activeTab === 'business_metrics' && tenantInfo?.subscriptionPlan === 'enterprise' && (
-                   <Card className="rounded-[32px] border-[8px] border-white bg-white shadow-xl overflow-hidden animate-fadeIn">
+                   <Card className="rounded-[32px] border-[8px] border-[#1c1814] bg-[#1c1814] shadow-2xl overflow-hidden animate-fadeIn">
                      {/* Premium Dark Header */}
                      <div className="relative bg-[#1c1814] px-8 pt-8 pb-10 overflow-hidden">
                        <div className="absolute inset-0 bg-gradient-to-br from-[#2a2018]/80 to-[#1c1814]" />
-                       <div className="absolute top-0 right-0 w-64 h-64 bg-salvia/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-                       <div className="absolute bottom-0 left-0 w-40 h-40 bg-terracota/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
+                       <div className="absolute top-0 right-0 w-64 h-64 bg-salvia/8 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+                       <div className="absolute bottom-0 left-0 w-40 h-40 bg-terracota/8 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
                        <div className="relative z-10">
                          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                            <div>
-                             <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-salvia/70 mb-1">Panel Empresarial</p>
+                             <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-salvia mb-1">Panel Empresarial</p>
                              <h2 className="font-serif text-3xl font-bold text-white">Métricas de Negocio</h2>
-                             <p className="text-xs text-white/40 mt-1">Rendimiento comercial · Afluencia · Reservas</p>
+                             <p className="text-xs text-white/50 mt-1">Rendimiento comercial · Afluencia · Reservas</p>
                            </div>
                            <div className="text-right shrink-0">
-                             <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Período activo</p>
-                             <p className="text-sm font-bold text-white/70 font-serif">{new Date().toLocaleDateString('es', { month: 'long', year: 'numeric' })}</p>
+                             <p className="text-[9px] font-bold uppercase tracking-widest text-white/40">Período activo</p>
+                             <p className="text-sm font-bold text-white/80 font-serif">{new Date().toLocaleDateString('es', { month: 'long', year: 'numeric' })}</p>
                            </div>
                          </div>
                        </div>
                      </div>
 
-                     <CardContent className="px-6 pb-8 -mt-4 space-y-6">
+                     <CardContent className="bg-[#1c1814] px-6 pb-8 -mt-4 space-y-6">
                        {/* KPI Cards Row */}
                        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
                          {/* Revenue KPI */}
-                         <div className="relative overflow-hidden bg-gradient-to-br from-salvia/15 to-salvia/5 border border-salvia/20 rounded-[20px] p-5 group hover:border-salvia/40 transition-all">
-                           <div className="absolute top-3 right-3 w-8 h-8 bg-salvia/15 rounded-full flex items-center justify-center">
-                             <svg className="w-4 h-4 text-salvia fill-current" viewBox="0 0 24 24">
+                         <div className="relative overflow-hidden bg-[#2a2018] border border-salvia/30 rounded-[20px] p-5 group hover:border-salvia/60 hover:bg-[#312518] transition-all">
+                           <div className="absolute top-3 right-3 w-8 h-8 bg-salvia/20 rounded-full flex items-center justify-center">
+                             <svg className="w-4 h-4 fill-current" style={{color:'#a8bc9f'}} viewBox="0 0 24 24">
                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/>
                              </svg>
                            </div>
-                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/50 mb-2">Ingresos (últ. 30d)</p>
-                           <p className="text-2xl font-serif font-bold text-gris">${mrr.toFixed(2)}</p>
-                           <p className="text-[9px] text-salvia font-semibold mt-1.5">Membresías activas</p>
+                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2">Ingresos (últ. 30d)</p>
+                           <p className="text-2xl font-serif font-bold text-white">${mrr.toFixed(2)}</p>
+                           <p className="text-[9px] font-semibold mt-1.5" style={{color:'#a8bc9f'}}>Membresías activas</p>
                          </div>
 
                          {/* Active Members KPI */}
-                         <div className="relative overflow-hidden bg-gradient-to-br from-terracota/10 to-terracota/5 border border-terracota/20 rounded-[20px] p-5 group hover:border-terracota/40 transition-all">
-                           <div className="absolute top-3 right-3 w-8 h-8 bg-terracota/15 rounded-full flex items-center justify-center">
+                         <div className="relative overflow-hidden bg-[#2a2018] border border-terracota/30 rounded-[20px] p-5 group hover:border-terracota/60 hover:bg-[#312518] transition-all">
+                           <div className="absolute top-3 right-3 w-8 h-8 bg-terracota/20 rounded-full flex items-center justify-center">
                              <svg className="w-4 h-4 text-terracota fill-current" viewBox="0 0 24 24">
                                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
                              </svg>
                            </div>
-                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/50 mb-2">Miembros Activos</p>
-                           <p className="text-2xl font-serif font-bold text-gris">{activeStudentsCount}</p>
+                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2">Miembros Activos</p>
+                           <p className="text-2xl font-serif font-bold text-white">{activeStudentsCount}</p>
                            <p className="text-[9px] text-terracota font-semibold mt-1.5">de {totalStudentsCount} registrados</p>
                          </div>
 
                          {/* Occupancy KPI */}
-                         <div className="relative overflow-hidden bg-gradient-to-br from-gris/10 to-gris/5 border border-gris/15 rounded-[20px] p-5 group hover:border-gris/30 transition-all">
-                           <div className="absolute top-3 right-3 w-8 h-8 bg-gris/10 rounded-full flex items-center justify-center">
-                             <svg className="w-4 h-4 text-gris fill-current" viewBox="0 0 24 24">
+                         <div className="relative overflow-hidden bg-[#2a2018] border border-white/15 rounded-[20px] p-5 group hover:border-white/30 hover:bg-[#312518] transition-all">
+                           <div className="absolute top-3 right-3 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+                             <svg className="w-4 h-4 text-white/70 fill-current" viewBox="0 0 24 24">
                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/>
                              </svg>
                            </div>
-                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/50 mb-2">Ocupación Promedio</p>
-                           <p className="text-2xl font-serif font-bold text-gris">{bookingRate}%</p>
-                           <div className="mt-2 w-full bg-gris/10 rounded-full h-1">
-                             <div className="bg-salvia h-1 rounded-full transition-all" style={{ width: `${Math.min(parseFloat(String(bookingRate)), 100)}%` }} />
+                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2">Ocupación Promedio</p>
+                           <p className="text-2xl font-serif font-bold text-white">{bookingRate}%</p>
+                           <div className="mt-2 w-full bg-white/10 rounded-full h-1.5">
+                             <div className="h-full rounded-full transition-all" style={{backgroundColor:'#a8bc9f', width: `${Math.min(parseFloat(String(bookingRate)), 100)}%`}} />
                            </div>
                          </div>
 
                          {/* New Students KPI */}
-                         <div className="relative overflow-hidden bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 rounded-[20px] p-5 group hover:border-amber-500/40 transition-all">
-                           <div className="absolute top-3 right-3 w-8 h-8 bg-amber-500/15 rounded-full flex items-center justify-center">
-                             <svg className="w-4 h-4 text-amber-600 fill-current" viewBox="0 0 24 24">
+                         <div className="relative overflow-hidden bg-[#2a2018] border border-amber-500/30 rounded-[20px] p-5 group hover:border-amber-500/60 hover:bg-[#312518] transition-all">
+                           <div className="absolute top-3 right-3 w-8 h-8 bg-amber-500/20 rounded-full flex items-center justify-center">
+                             <svg className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 24 24">
                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
                              </svg>
                            </div>
-                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/50 mb-2">Nuevos Alumnos (30d)</p>
-                           <p className="text-2xl font-serif font-bold text-gris">+{newStudentsLast30Days}</p>
-                           <p className="text-[9px] text-amber-600 font-semibold mt-1.5">Incorporaciones recientes</p>
+                           <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2">Nuevos Alumnos (30d)</p>
+                           <p className="text-2xl font-serif font-bold text-white">+{newStudentsLast30Days}</p>
+                           <p className="text-[9px] text-amber-400 font-semibold mt-1.5">Incorporaciones recientes</p>
                          </div>
                        </div>
 
                        {/* Charts Row */}
                        <div className="grid gap-4 md:grid-cols-2">
                          {/* Revenue Chart */}
-                         <div className="bg-[#f9f7f4] border border-arena/30 rounded-[20px] p-5">
+                         <div className="bg-[#241e19] border border-white/8 rounded-[20px] p-5">
                            <div className="flex items-center justify-between mb-4">
                              <div>
-                               <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/40 mb-0.5">Tendencia</p>
-                               <h4 className="text-xs font-bold text-gris">Ingresos Mensuales</h4>
+                               <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/30 mb-0.5">Tendencia</p>
+                               <h4 className="text-xs font-bold text-white/80">Ingresos Mensuales</h4>
                              </div>
-                             <span className="text-[8px] font-bold uppercase tracking-wider bg-salvia/15 text-salvia px-2.5 py-1 rounded-full">6 Meses</span>
+                             <span className="text-[8px] font-bold uppercase tracking-wider bg-salvia/25 text-salvia px-2.5 py-1 rounded-full">6 Meses</span>
                            </div>
                            {allPaymentsLoading ? (
                              <div className="flex justify-center items-center h-32">
@@ -2717,8 +2717,8 @@ export function Dashboard() {
                                  const y = 10 + (1 - ratio) * 90;
                                  return (
                                    <g key={ratio}>
-                                     <line x1={30} y1={y} x2={330} y2={y} stroke="#c8bfb5" strokeWidth="0.5" strokeDasharray="3,3" opacity="0.5"/>
-                                     <text x={0} y={y + 3} className="text-[5px] fill-gris/40" fontSize="5.5">${val}</text>
+                                     <line x1={30} y1={y} x2={330} y2={y} stroke="#ffffff" strokeWidth="0.4" strokeDasharray="3,3" opacity="0.12"/>
+                                     <text x={0} y={y + 3} fill="rgba(255,255,255,0.35)" fontSize="5.5">${val}</text>
                                    </g>
                                  );
                                })}
@@ -2734,11 +2734,11 @@ export function Dashboard() {
                                  return (
                                    <>
                                      <path d={areaD} fill="url(#revenueGrad)" />
-                                     <path d={lineD} fill="none" stroke="var(--color-salvia,#8b9c86)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                     <path d={lineD} fill="none" stroke="#a8bc9f" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                                      {pts.map((p, i) => (
                                        <g key={i}>
-                                         <circle cx={p.x} cy={p.y} r="3.5" fill="white" stroke="var(--color-salvia,#8b9c86)" strokeWidth="1.5"/>
-                                         <text x={p.x} y={115} textAnchor="middle" fontSize="5.5" className="fill-gris/50">{revenueData[i].label}</text>
+                                         <circle cx={p.x} cy={p.y} r="4" fill="#1c1814" stroke="#a8bc9f" strokeWidth="2"/>
+                                         <text x={p.x} y={115} textAnchor="middle" fontSize="5.5" fill="rgba(255,255,255,0.4)">{revenueData[i].label}</text>
                                        </g>
                                      ))}
                                    </>
@@ -2747,35 +2747,35 @@ export function Dashboard() {
                              </svg>
                            ) : (
                              <div className="flex flex-col items-center justify-center h-32 text-center gap-2">
-                               <svg className="w-8 h-8 text-gris/20 fill-current" viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
-                               <p className="text-[10px] text-gris/35 italic">Sin registros de pago en los últimos 6 meses</p>
+                               <svg className="w-8 h-8 fill-current" style={{color:'rgba(255,255,255,0.15)'}} viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+                               <p className="text-[10px] italic" style={{color:'rgba(255,255,255,0.3)'}}>Sin registros de pago en los últimos 6 meses</p>
                              </div>
                            )}
                          </div>
 
                          {/* Top Classes Chart */}
-                         <div className="bg-[#f9f7f4] border border-arena/30 rounded-[20px] p-5">
+                         <div className="bg-[#241e19] border border-white/8 rounded-[20px] p-5">
                            <div className="flex items-center justify-between mb-4">
                              <div>
-                               <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/40 mb-0.5">Popularidad</p>
-                               <h4 className="text-xs font-bold text-gris">Clases Más Reservadas</h4>
+                               <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/30 mb-0.5">Popularidad</p>
+                               <h4 className="text-xs font-bold text-white/80">Clases Más Reservadas</h4>
                              </div>
-                             <span className="text-[8px] font-bold uppercase tracking-wider bg-terracota/15 text-terracota px-2.5 py-1 rounded-full">Top 5</span>
+                             <span className="text-[8px] font-bold uppercase tracking-wider bg-terracota/30 text-terracota px-2.5 py-1 rounded-full">Top 5</span>
                            </div>
                            {classPopularity.length > 0 ? (
                              <div className="space-y-3">
                                {classPopularity.map((d, idx) => {
                                  const maxVal = Math.max(...classPopularity.map(c => c.value), 1);
                                  const pct = (d.value / maxVal) * 100;
-                                 const colors = ['bg-salvia', 'bg-terracota/80', 'bg-gris/60', 'bg-amber-400/70', 'bg-salvia/50'];
+                                 const barColors = ['#a8bc9f', '#c08575', '#7a7060', '#d4a842', '#6e8b6a'];
                                  return (
                                    <div key={idx} className="space-y-1">
                                      <div className="flex justify-between items-center">
-                                       <span className="text-[10px] font-semibold text-gris truncate max-w-[150px]">{d.label}</span>
-                                       <span className="text-[10px] font-bold text-gris/50">{d.value} reservas</span>
+                                       <span className="text-[10px] font-semibold text-white/80 truncate max-w-[150px]">{d.label}</span>
+                                       <span className="text-[10px] font-bold text-white/40">{d.value} reservas</span>
                                      </div>
-                                     <div className="w-full h-2 bg-arena/40 rounded-full overflow-hidden">
-                                       <div className={`h-full rounded-full transition-all ${colors[idx % colors.length]}`} style={{ width: `${pct}%` }} />
+                                     <div className="w-full h-2 bg-white/8 rounded-full overflow-hidden">
+                                       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColors[idx % barColors.length] }} />
                                      </div>
                                    </div>
                                  );
@@ -2783,8 +2783,8 @@ export function Dashboard() {
                              </div>
                            ) : (
                              <div className="flex flex-col items-center justify-center h-32 text-center gap-2">
-                               <svg className="w-8 h-8 text-gris/20 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                               <p className="text-[10px] text-gris/35 italic">Aún no hay reservas registradas</p>
+                               <svg className="w-8 h-8 fill-current" style={{color:'rgba(255,255,255,0.15)'}} viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                               <p className="text-[10px] italic" style={{color:'rgba(255,255,255,0.3)'}}>Aún no hay reservas registradas</p>
                              </div>
                            )}
                          </div>
@@ -2793,14 +2793,14 @@ export function Dashboard() {
                        {/* Bottom Row: Peak Hours + Summary */}
                        <div className="grid gap-4 md:grid-cols-2">
                          {/* Peak Hours */}
-                         <div className="bg-[#f9f7f4] border border-arena/30 rounded-[20px] p-5">
+                         <div className="bg-[#241e19] border border-white/8 rounded-[20px] p-5">
                            <div className="flex items-center gap-2 mb-4">
-                             <div className="w-7 h-7 rounded-full bg-salvia/15 flex items-center justify-center">
-                               <svg className="w-3.5 h-3.5 text-salvia fill-current" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+                             <div className="w-7 h-7 rounded-full bg-salvia/20 flex items-center justify-center">
+                               <svg className="w-3.5 h-3.5 fill-current" style={{color:'#a8bc9f'}} viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
                              </div>
                              <div>
-                               <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gris/40">Afluencia</p>
-                               <h4 className="text-xs font-bold text-gris">Horas Pico</h4>
+                               <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">Afluencia</p>
+                               <h4 className="text-xs font-bold text-white/80">Horas Pico</h4>
                              </div>
                            </div>
                            {popularHours.length > 0 ? (
@@ -2813,11 +2813,11 @@ export function Dashboard() {
                                      <span className="text-sm shrink-0">{rank}</span>
                                      <div className="flex-1 min-w-0">
                                        <div className="flex justify-between items-center mb-1">
-                                         <span className="text-[10px] font-bold text-gris">{h.label} hs</span>
-                                         <span className="text-[9px] text-gris/50">{h.value} reservas</span>
+                                         <span className="text-[10px] font-bold text-white/80">{h.label} hs</span>
+                                         <span className="text-[9px] text-white/40">{h.value} reservas</span>
                                        </div>
-                                       <div className="w-full h-1.5 bg-arena/40 rounded-full">
-                                         <div className="h-full bg-salvia/60 rounded-full" style={{ width: `${(h.value/max)*100}%` }} />
+                                       <div className="w-full h-1.5 bg-white/8 rounded-full">
+                                         <div className="h-full rounded-full" style={{backgroundColor:'#a8bc9f', width: `${(h.value/max)*100}%`}} />
                                        </div>
                                      </div>
                                    </div>
@@ -2825,7 +2825,7 @@ export function Dashboard() {
                                })}
                              </div>
                            ) : (
-                             <p className="text-center text-[10px] text-gris/40 italic py-6">No hay clases con reservas registradas</p>
+                             <p className="text-center text-[10px] italic py-6" style={{color:'rgba(255,255,255,0.3)'}}>No hay clases con reservas registradas</p>
                            )}
                          </div>
 
